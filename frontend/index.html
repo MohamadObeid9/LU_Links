@@ -1,0 +1,281 @@
+<!doctype html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script data-cfasync="false">
+      (function () {
+        var dark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+        document.documentElement.setAttribute("data-theme", dark ? "dark" : "light");
+      })();
+    </script>
+    <link rel="stylesheet" href="/styles/app.css">
+    <title>Info Links — CNAM Liban matériaux cours (ISAE CNAM, génie informatique)</title>
+    <meta name="description"
+        content="Hub étudiant CNAM Liban et ISAE CNAM : matériaux, TD, cours, examens, sessions, vidéos. Licence info, master AISL, IRSM, génie informatique — 50+ cours par code (NFA035, NSY107…)." />
+    <meta property="og:title" content="Info Links — CNAM Liban matériaux cours" />
+    <meta property="og:description"
+        content="Ressources CNAM Liban : TD, cours, examens, sessions. Génie informatique, licence info, master. Liens Drive, Telegram, Classroom." />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="/" />
+    <meta name="theme-color" content="#6c63ff" />
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "name": "Info Links",
+      "description": "Matériaux et liens cours CNAM Liban — TD, cours, examens, sessions, vidéos",
+      "potentialAction": {
+        "@type": "SearchAction",
+        "target": "/?highlight={search_term_string}",
+        "query-input": "required name=search_term_string"
+      }
+    }
+    </script>
+    <link rel="apple-touch-icon" sizes="180x180" href="/assets/apple-touch-icon.png" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/assets/favicon-16x16.png" />
+    <link rel="icon" type="image/x-icon" href="/assets/favicon.ico" />
+</head>
+
+<body>
+    <div id="app">
+        <nav>
+            <div class="logo">📚 Info Links</div>
+            <button class="hamburger" id="hamburgerBtn" data-action="toggleMobileMenu">
+                <span></span><span></span><span></span>
+            </button>
+            <div class="nav-links" id="navLinks">
+                <button class="nav-btn active" data-view="home">Home</button>
+                <button class="nav-btn" data-view="about">About</button>
+                <button class="nav-btn" data-view="report-submit">Report / Contribute</button>
+                <button class="nav-btn" data-view="feedback">Feedback</button>
+                <button class="nav-btn admin-btn" data-view="admin-gate">Admin</button>
+                <button class="theme-btn" id="themeBtn" data-action="toggleTheme">☀️</button>
+            </div>
+        </nav>
+
+        <!-- HOME -->
+        <div class="view active" id="view-home">
+            <div class="hero">
+                <h1>Info Links</h1>
+                <p>All courses, materials & links — organized by program, year & semester.</p>
+                <div class="student-welcome" id="studentWelcome" hidden></div>
+            </div>
+            <div class="search-bar">
+                <div class="search-wrap">
+                    <span class="si">🔍</span>
+                    <input type="text" id="searchInput" placeholder="Search by course name or code…" />
+                </div>
+            </div>
+            <button class="filter-toggle-btn" id="filterToggleBtn" data-action="toggleFilters">
+                <span>🔎 Filters & Programs</span><span class="filter-toggle-arrow" id="filterArrow">▼</span>
+            </button>
+            <div class="filters-collapsible" id="filtersCollapsible">
+                <div class="prog-tabs" id="progTabs"></div>
+                <div id="programSectionHeading" hidden></div>
+                <div class="filter-row">
+                    <div class="filter-group">
+                        <label>Year</label>
+                        <div class="filters" id="yearFilters"></div>
+                    </div>
+                    <div class="filter-group">
+                        <label>Semester</label>
+                        <div class="filters" id="semFilters"></div>
+                    </div>
+                </div>
+            </div>
+            <div id="sectionHint" hidden></div>
+            <div id="coursesOutput"></div>
+            <div id="extraSection" class="extra-section-offset"></div>
+            <div id="serviceSidebar" class="service-sidebar" style="display:none;"></div>
+        </div>
+
+        <!-- REPORT / SUBMIT -->
+        <div class="view" id="view-report-submit">
+            <h2 class="view-title">Report & Contribute</h2>
+            <p class="view-subtitle">
+                Help keep the hub accurate and growing.
+            </p>
+            <div class="report-grid">
+                <div class="report-box">
+                    <h3>🚨 Report a broken / inaccessible link</h3>
+                    <input type="text" id="rCourse" list="courseDatalist" placeholder="Course name or code" />
+                    <select id="rLink" disabled>
+                        <option value="">Select a link…</option>
+                    </select>
+                    <textarea id="rDesc" placeholder="Describe the issue.."></textarea>
+                    <button class="btn btn-primary" id="submitReportBtn" data-action="submitReport">Submit Report</button>
+                </div>
+
+                <div class="report-box">
+                    <h3>➕ Contribute a new link</h3>
+                    <input type="text" id="cCourse" list="courseDatalist" placeholder="Course name or code" />
+                    <input type="text" id="cLink" placeholder="https://…" />
+                    <select id="cType">
+                        <option value="">Select link type…</option>
+                        <option value="telegram">Telegram</option>
+                        <option value="drive">Google Drive</option>
+                        <option value="classroom">Google Classroom</option>
+                        <option value="other">Other</option>
+                    </select>
+                    <textarea id="cNote" placeholder="Note (optional)"></textarea>
+                    <button class="btn btn-primary" id="submitContribBtn" data-action="submitContribution">Submit Contribution</button>
+                </div>
+            </div>
+            <datalist id="courseDatalist"></datalist>
+        </div>
+
+        <!-- ABOUT -->
+        <div class="view" id="view-about">
+            <div class="about-content">
+                <h2 class="view-title">About Info Links</h2>
+
+                <section class="about-block">
+                    <h3>The problem</h3>
+                    <p>Every semester, the same question in random group chats: <em>"Does anyone have the link for X?"</em> No central place. No organization. Just noise.</p>
+                </section>
+
+                <section class="about-block">
+                    <h3>How it started</h3>
+                    <p>In February 2025 I started a Telegram channel — <strong>Info Links</strong> — manually organizing course links, Drive folders, Classroom pages, and Telegram groups by program, year, and semester.</p>
+                    <p>What began as one person with a simple idea grew to <strong>300+ students</strong> in under a year. The problem was real — and bigger than I thought.</p>
+                </section>
+
+                <section class="about-block">
+                    <h3>What it is today</h3>
+                    <p>Info Links is a free hub for <strong>50+ courses</strong> at Le CNAM Lebanon — from foundational subjects through License and partial Master's in Computer Science. Search by name or code, filter by program/year/semester, and find Drive, Classroom, Telegram, and other links in one place.</p>
+                    <p>Behind the scenes, the platform now runs on a <strong>Go REST API</strong> with the same Postgres database — same product students already use, with engineering that can grow with the community.</p>
+                </section>
+
+                <section class="about-block">
+                    <h3>Free, always</h3>
+                    <p>If I was a broke student looking for course materials, I wouldn't pay. So this stays free. It exists because of the community — and it belongs to the community.</p>
+                </section>
+
+                <section class="about-block about-cta">
+                    <h3>Help it reach more people</h3>
+                    <p>If this project helps you, here's how you can support it:</p>
+                    <ul class="about-list">
+                        <li><strong>⭐ Star the repo</strong> on GitHub — it helps more students discover the project.</li>
+                        <li><strong>📎 Share a link</strong> — use <button type="button" class="about-inline-link" data-view="report-submit">Report / Contribute</button> to submit materials we don't have yet.</li>
+                        <li><strong>💻 Contribute code</strong> — the project is open source; issues and PRs are welcome.</li>
+                        <li><strong>📢 Spread the word</strong> — share with classmates or join the Telegram channel for updates.</li>
+                    </ul>
+                    <div class="about-actions">
+                        <a class="btn btn-primary" href="https://github.com/MohamadObeid9/Info_Links" target="_blank" rel="noopener noreferrer">⭐ Star on GitHub</a>
+                        <a class="btn btn-ghost" href="https://t.me/Info_Links9" target="_blank" rel="noopener noreferrer">📢 Telegram</a>
+                        <button type="button" class="btn btn-ghost" data-view="report-submit">➕ Contribute a link</button>
+                    </div>
+                </section>
+            </div>
+        </div>
+
+        <!-- FEEDBACK -->
+        <div class="view" id="view-feedback">
+            <h2 class="view-title">Share Your Feedback</h2>
+            <p class="view-subtitle">
+                Help us improve by sharing your experience and suggestions.
+            </p>
+            <div class="feedback-wrap">
+                <div class="extra-section">
+                    <div class="extra-title"><span>⭐</span> Rate Your Experience</div>
+                    <div class="feedback-stars" id="starRating" role="radiogroup" aria-label="Rating">
+                        <button class="star" type="button" data-rating="1" aria-label="1 star">★</button>
+                        <button class="star" type="button" data-rating="2" aria-label="2 stars">★</button>
+                        <button class="star" type="button" data-rating="3" aria-label="3 stars">★</button>
+                        <button class="star" type="button" data-rating="4" aria-label="4 stars">★</button>
+                        <button class="star" type="button" data-rating="5" aria-label="5 stars">★</button>
+                    </div>
+                    <div id="ratingDisplay" class="rating-display">
+                        Select a rating</div>
+                    <div class="extra-title"><span>📋</span> What would you like to rate?</div>
+                    <select class="inp feedback-category" id="feedbackCategory">
+                        <option value="">Select a category...</option>
+                        <option value="ui/ux">UI/UX Design</option>
+                        <option value="content">Content Quality</option>
+                        <option value="functionality">Functionality</option>
+                        <option value="performance">Performance</option>
+                        <option value="accessibility">Accessibility</option>
+                        <option value="other">Other</option>
+                    </select>
+                    <textarea class="inp feedback-message" id="feedbackMessage" placeholder="Your feedback (optional)…"></textarea>
+                    <button class="btn btn-primary feedback-submit-btn" data-action="submitFeedback">Submit
+                        Feedback</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ADMIN GATE -->
+        <div class="view" id="view-admin-gate">
+            <div class="login-wrap">
+                <h2>Admin Login</h2>
+                <p>Enter your credentials to access the dashboard.</p>
+                <input type="email" id="adminEmail" placeholder="Email" />
+                <input type="password" id="adminPass" placeholder="Password" />
+                <button class="btn btn-primary login-submit-btn" data-action="checkLogin">Login</button>
+                <div class="err" id="loginErr"></div>
+            </div>
+        </div>
+
+        <!-- ADMIN DASHBOARD -->
+        <div class="view" id="view-admin">
+            <div class="admin-header">
+                <h2>⚙️ Admin Dashboard</h2>
+                <div class="admin-header-actions">
+                    <button class="btn btn-primary" data-action="openAddCourseModal">+ Add Course</button>
+                    <button class="btn btn-ghost" data-action="exportData">📥 Export</button>
+                    <button class="btn btn-ghost" data-action="logout">Logout</button>
+                </div>
+            </div>
+            <div class="admin-mobile-bar">
+                <select id="adminTabSelect" aria-label="Admin section">
+                    <option value="courses">Courses &amp; Links</option>
+                    <option value="extra">Extra Resources</option>
+                    <option value="feedback">Feedback</option>
+                    <option value="reports">Reports</option>
+                    <option value="contributions">Contributions</option>
+                    <option value="students">Students</option>
+                    <option value="analytics">Analytics</option>
+                    <option value="services">Community Services</option>
+                </select>
+                <button type="button" class="btn btn-primary" id="adminMobileAdd" hidden>+ Add</button>
+                <div class="admin-mobile-alerts" id="adminMobileAlerts" hidden></div>
+            </div>
+            <div class="admin-tabs">
+                <button class="admin-tab active" data-admin-tab="courses">Courses &amp; Links</button>
+                <button class="admin-tab" data-admin-tab="extra">Extra Resources</button>
+                <button class="admin-tab" data-admin-tab="feedback">Feedback <span class="badge" id="feedbackBadge"></span></button>
+                <button class="admin-tab" data-admin-tab="reports">Reports <span class="badge" id="reportBadge"></span></button>
+                <button class="admin-tab" data-admin-tab="contributions">Contributions <span class="badge" id="contribBadge"></span></button>
+                <button class="admin-tab" data-admin-tab="students">Students</button>
+                <button class="admin-tab" data-admin-tab="analytics">Analytics</button>
+                <button class="admin-tab" data-admin-tab="services">Community Services</button>
+            </div>
+            <div id="adminContent"></div>
+        </div>
+
+        <footer class="site-footer">
+            <p class="footer-tagline">Built by students, for students.</p>
+            <div class="footer-links">
+                <button type="button" class="footer-link-btn" data-view="about">About</button>
+                <span class="footer-sep">·</span>
+                <a href="https://t.me/Info_Links9" class="footer-external-link">Telegram</a>
+                <span class="footer-sep">·</span>
+                <a href="https://github.com/MohamadObeid9/Info_Links" class="footer-external-link">GitHub</a>
+                <span class="footer-sep">·</span>
+                <a href="https://www.linkedin.com/in/mohamadobeid9/" class="footer-external-link">LinkedIn</a>
+            </div>
+            <p class="footer-copy">© 2026 Info Links · </p>
+        </footer>
+
+        <div class="modal-overlay" id="modal">
+            <div class="modal" id="modalBox"></div>
+        </div>
+        <div class="toast" id="toast"></div>
+    </div>
+    <script data-cfasync="false" type="module" src="/main.js"></script>
+</body>
+
+</html>

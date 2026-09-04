@@ -1,0 +1,213 @@
+import "./js/state.js";
+import "./js/cache.js";
+import "./js/supabase.js";
+import "./js/skeleton.js";
+import "./js/ui.js";
+import "./js/home.js";
+import "./js/mobile-home.js";
+import "./js/data.js";
+import "./js/feedback.js";
+import "./js/export.js";
+import "./js/admin.js";
+import "./js/views.js";
+import "./js/modals.js";
+import "./js/session.js";
+import "./js/services.js";
+import { initWebMCP } from "./js/webmcp.js";
+
+// --- EVENT ROUTER (Professional Event Delegation) ---
+document.addEventListener("click", (e) => {
+  const target = e.target;
+
+  // Copy-link button (must run before the link-item handler below)
+  const copyBtn = target.closest(".copy-btn");
+  if (copyBtn) {
+    e.preventDefault();
+    e.stopPropagation();
+    const copyUrl = copyBtn.closest("[data-url]")?.dataset.url;
+    const copy = () => {
+      if (copyUrl) window.copyLink(copyUrl);
+    };
+    if (window.requireStudent(copy)) copy();
+    return;
+  }
+
+  const hintLink = target.closest(".hint-link");
+  if (hintLink) {
+    e.preventDefault();
+    const url = hintLink.dataset.url || hintLink.getAttribute("href");
+    const openLink = () => window.confirmLink(null, url, "link");
+    if (window.requireStudent(openLink)) openLink();
+    return;
+  }
+
+  const footerExternal = target.closest(".footer-external-link");
+  if (footerExternal) {
+    e.preventDefault();
+    const url = footerExternal.getAttribute("href");
+    if (url) window.confirmLink(null, url, "link");
+    return;
+  }
+
+  // External link item → confirmation modal (URL read from dataset, never inline JS)
+  // Opening a link is gated: the signup modal replaces the confirmation popup
+  // until the visitor is a registered student.
+  const linkItem = target.closest(".link-item");
+  if (linkItem) {
+    e.preventDefault();
+    const serviceIdAttr = linkItem.dataset.serviceId;
+    if (serviceIdAttr) {
+      const serviceId = parseInt(serviceIdAttr, 10);
+      const context = linkItem.dataset.serviceContext || "list";
+      const url = linkItem.dataset.url || null;
+      const serviceTarget = linkItem.dataset.serviceTarget || "";
+      const openServiceLink = () => window.confirmServiceLink(serviceId, url, context, serviceTarget);
+      if (window.requireStudent(openServiceLink)) openServiceLink();
+      return;
+    }
+    const idAttr = linkItem.dataset.linkId;
+    const linkId = idAttr ? parseInt(idAttr, 10) : null;
+    const linkKind = linkItem.dataset.linkKind || "link";
+    const url = linkItem.dataset.url || null;
+    const openLink = () => window.confirmLink(linkId, url, linkKind);
+    if (window.requireStudent(openLink)) openLink();
+    return;
+  }
+
+  const serviceCard = target.closest(".service-sidebar-card, .service-pick-card, .service-sem-btn");
+  if (serviceCard) {
+    e.preventDefault();
+    const serviceId = parseInt(serviceCard.dataset.serviceId, 10);
+    if (serviceCard.classList.contains("service-sidebar-card") && !window.isMobileView?.()) {
+      window.selectCommunity?.(serviceId);
+      return;
+    }
+    const s = window.AppState?.dbServices?.find((x) => x.id === serviceId);
+    if (s) {
+      const contact = window.primaryServiceContact?.(s) || s.url || s.phone || "";
+      const context = serviceCard.dataset.serviceContext || "sidebar";
+      const serviceTarget =
+        window.inferServiceTargetFromUrl?.(contact) || s.links?.[0]?.label || "";
+      const openServiceLink = () => window.confirmServiceLink(serviceId, contact, context, serviceTarget);
+      if (window.requireStudent(openServiceLink)) openServiceLink();
+    }
+    return;
+  }
+
+  const embeddedServiceCard = target.closest(".service-card");
+  if (embeddedServiceCard && !window.isMobileView?.() && !target.closest(".link-item")) {
+    const serviceId = parseInt(embeddedServiceCard.dataset.serviceId, 10);
+    if (serviceId && window.AppState?.currentProg !== "community") {
+      e.preventDefault();
+      window.selectCommunity?.(serviceId);
+      return;
+    }
+  }
+
+  const view = target.closest("[data-view]")?.dataset.view;
+  if (view) {
+    if (view === "community") {
+      window.selectCommunity();
+      return;
+    }
+    window.showView(view);
+    return;
+  }
+
+  const action = target.closest("[data-action]")?.dataset.action;
+  if (action) {
+    switch (action) {
+      case "toggleMobileMenu":
+        window.toggleMobileMenu();
+        break;
+      case "toggleTheme":
+        window.toggleTheme();
+        break;
+      case "toggleFilters":
+        window.toggleFilters();
+        break;
+      case "submitReport":
+        window.submitReport();
+        break;
+      case "submitContribution":
+        window.submitContribution();
+        break;
+      case "submitFeedback":
+        window.submitFeedback();
+        break;
+      case "logout":
+        window.logout();
+        break;
+      case "checkLogin":
+        window.checkLogin();
+        break;
+      case "openAddCourseModal":
+        window.openAddCourseModal();
+        break;
+      case "openAddExtraSectionModal":
+        window.openAddExtraSectionModal();
+        break;
+      case "exportData":
+        window.exportData();
+        break;
+      case "studentSignIn":
+        window.promptStudentAuth();
+        break;
+      case "studentSignOut":
+        window.signOutStudent();
+        break;
+    }
+    return;
+  }
+
+  const adminTabName = target.closest("[data-admin-tab]")?.dataset.adminTab;
+  if (adminTabName) {
+    window.adminTab(adminTabName);
+    return;
+  }
+
+  const rating = target.closest("[data-rating]")?.dataset.rating;
+  if (rating) {
+    window.setRating(parseInt(rating, 10));
+    return;
+  }
+});
+
+document.addEventListener("input", (e) => {
+  if (e.target.id === "searchInput") {
+    window.onSearch();
+  }
+  if (e.target.id === "rCourse") {
+    window.onReportCourseChange();
+  }
+});
+
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Enter" && e.target.id === "adminPass") {
+    e.preventDefault();
+    window.checkLogin();
+  }
+});
+
+document.addEventListener("mouseover", (e) => {
+  const rating = e.target.closest("[data-rating]")?.dataset.rating;
+  if (rating) window.handleStarHover(parseInt(rating, 10));
+});
+document.addEventListener("mouseout", (e) => {
+  if (e.target.closest("[data-rating]")) window.clearStarHover();
+});
+
+async function init() {
+  // Register WebMCP tools as early as possible so agent scanners see them on load.
+  const webmcp = initWebMCP().catch((err) => {
+    console.warn("WebMCP registration skipped:", err);
+  });
+  try {
+    await window.initApp();
+  } catch (err) {
+    console.error("Critical: App initialization failed:", err);
+  }
+  await webmcp;
+}
+
+window.addEventListener("DOMContentLoaded", init);
