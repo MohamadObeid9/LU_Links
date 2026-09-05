@@ -257,7 +257,7 @@ Single Docker web service on [Render](https://render.com):
 
 The [Dockerfile](Dockerfile) is multi-stage: Node builds `frontend/dist`, Go compiles the server, final image runs on distroless as non-root. CI runs the same `docker build` before Render deploys — what is tested is what ships.
 
-On deploy, Render sends `SIGTERM`. The server stops accepting new connections, drains in-flight requests (10s budget), stops the stale-guest cleanup ticker, then closes the database pool.
+On deploy, Render sends `SIGTERM`. The server stops accepting new connections, drains in-flight requests (10s budget), then closes the database pool.
 
 `GET /api/content` is publicly cacheable (`max-age=60`, `stale-while-revalidate=600`). Cloudflare serves most student hits; a cron request every 10 minutes keeps that cache warm. Grafana showed p95/p99 drop from multi-second spikes to a stable sub-500ms band after this went live (21 Aug 2026). Origin also caches the same JSON in process (60s TTL). Origin-only k6 after that change: normal p95 **1.53 ms**, burst ~**17,009 req/s** ([`docs/load-test.md`](docs/load-test.md)).
 

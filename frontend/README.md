@@ -6,16 +6,16 @@ Vanilla HTML, CSS, and JavaScript UI for Info Links. The Go server serves these 
 
 - `index.html` — main SPA shell
 - `main.js` — bootstrap and event wiring
-- `js/` — feature modules (`data.js`, `home.js`, `admin.js`, `services.js`, …)
-- `styles/` — CSS (`app.css`, `admin.css`, `services.css`, `responsive.css`, …)
-- `public/` — static assets copied as-is into the build (favicon, PWA icons under `public/assets/`)
+- `js/` — feature modules (`data.js`, `home.js`, `admin.js`, …)
+- `styles/` — CSS (`app.css`, `admin.css`, `responsive.css`, …)
+- `public/` — static assets copied as-is into the build (favicon, PWA icons, webmanifest)
 
 ## Features
 
 - Course browsing, search, favorites, report/contribute/feedback flows
-- Tips (favorites, community promote, contribute Telegram guide)
-- Community services cards (sidebar, list intersperse, dedicated community view)
-- Admin panel (courses, services, analytics, students, inbox)
+- Tips (favorites, contribute Telegram guide)
+- Extra resources sections
+- Admin panel (courses, analytics, students, inbox)
 - Light/dark theme and mobile layouts
 - PWA manifest + service worker in production builds
 

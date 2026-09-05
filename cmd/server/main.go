@@ -67,7 +67,6 @@ func main() {
 		ExtraLinkService:    services.ExtraLinkService,
 		ContributionService: services.ContributionService,
 		ExtraSectionService: services.ExtraSectionService,
-		ServiceService:      services.ServiceService,
 		Logger:              logger.With("component", "api"),
 	})
 	if err != nil {

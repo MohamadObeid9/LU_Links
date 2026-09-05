@@ -32,7 +32,6 @@ function renderProgTabs() {
       )
       .join("") +
     `<button class="prog-tab ${AppState.currentProg === "extra" ? "active" : ""}" onclick="selectProg('extra')">📦 Extra</button>` +
-    `<button class="prog-tab ${AppState.currentProg === "community" ? "active" : ""}" onclick="selectCommunity()">🤝 Community</button>` +
     `<button class="prog-tab ${AppState.currentProg === "tips" ? "active" : ""}" onclick="selectProg('tips')">💡 Tips</button>` +
     `<button class="prog-tab fav-tab ${AppState.currentProg === "favorites" ? "active" : ""}" onclick="selectProg('favorites')">⭐ My Courses</button>`;
 }
@@ -281,10 +280,6 @@ function selectProg(id) {
     selectMobileProg(id);
     return;
   }
-  if (id === "community") {
-    window.selectCommunity?.();
-    return;
-  }
   AppState.currentProg = id;
   AppState.currentYear = "all";
   AppState.currentSem = "all";
@@ -295,21 +290,17 @@ function selectProg(id) {
     document.getElementById("coursesOutput").style.display = "none";
     document.getElementById("extraSection").style.display = "";
     renderExtra();
-    window.renderDesktopServiceSidebar?.();
   } else if (id === "all") {
     document.querySelector(".filter-row").style.display = "none";
     document.getElementById("coursesOutput").style.display = "";
     document.getElementById("extraSection").style.display = "";
     renderCourses();
     renderExtra();
-    window.renderDesktopServiceSidebar?.();
   } else if (id === "tips") {
     setSectionHint("");
     document.querySelector(".filter-row").style.display = "none";
     document.getElementById("coursesOutput").style.display = "";
     document.getElementById("extraSection").style.display = "none";
-    const sidebar = document.getElementById("serviceSidebar");
-    if (sidebar) sidebar.style.display = "none";
     renderTips();
   } else if (id === "favorites") {
     document.querySelector(".filter-row").style.display = "none";
@@ -323,7 +314,6 @@ function selectProg(id) {
     renderYearFilters();
     renderSemFilters();
     renderCourses();
-    window.renderDesktopServiceSidebar?.();
   }
   syncProgramSectionHeading();
 }

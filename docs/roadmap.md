@@ -17,7 +17,7 @@ Project history and planned work.
 | **Phase 7** | Favorites, content types, analytics, and PWA support |
 | **Phase 8** | Go backend with layered architecture, observability, CI, and SEO |
 | **Phase 9** | Student identity without passwords, synced favorites, and unique-user analytics |
-| **Phase 10** | Community services, agent/API discovery, graceful shutdown, integration tests, Cloudflare cache |
+| **Phase 10** | Agent/API discovery, graceful shutdown, integration tests, Cloudflare cache |
 | **Phase 11** | Origin in-memory `/api/content` cache (`singleflight`); k6 origin p95 1.53 ms (was 4.91 s) |
 
 ---
@@ -35,8 +35,6 @@ Project history and planned work.
 - [x] Favorites synced to the account instead of one browser
 - [x] Unique-user analytics aggregated in SQL (active students per range, top students)
 - [x] Admin Students directory with per-student activity timeline
-- [x] Cleanup job for stale unclaimed guest rows
-- [x] Community services (student businesses / tutoring) with click tracking
 - [x] HTTP server timeouts and graceful shutdown on SIGTERM
 - [x] Postgres integration tests (repo + HTTP, CI-gated)
 - [x] Cloudflare CDN cache for static assets and `GET /api/content` (kept warm with a 10-minute ping)

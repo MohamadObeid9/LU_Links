@@ -18,9 +18,7 @@ db/
     ├── 000006_add_page_views_device_type.up.sql
     ├── 000007_add_rejected_feedback_status.up.sql
     ├── 000008_add_search_and_browse_events.up.sql
-    ├── 000009_canonical_courses_and_placements.up.sql
-    ├── 000010_stale_guest_cleanup_index.up.sql
-    └── 000011_services.up.sql
+    └── 000009_canonical_courses_and_placements.up.sql
 ```
 
 - **`schema.sql`** — human-readable export for review and diffs; not meant to be executed directly.
@@ -75,8 +73,6 @@ Application-owned tables:
 | `links` | Resource links attached to canonical courses |
 | `extra_sections` | Non-course link groupings |
 | `extra_links` | Links inside extra sections |
-| `services` | Community listings (tutoring, student businesses) |
-| `service_clicks` | Opens on community service cards |
 | `reports` | User-submitted broken-link reports |
 | `contributions` | User-submitted new link suggestions |
 | `feedback` | User feedback and ratings |
@@ -115,16 +111,6 @@ Uniqueness is a **partial index** — `users_unique_username` on `(first_name, l
 The same migration adds a **nullable** `user_id` FK to `users(id)` on `page_views`, `link_clicks`, `reports`, `contributions`, and `feedback`, each with a `(user_id, <timestamp> DESC)` index for admin per-user queries.
 
 Nullable is intentional: rows written before this migration are anonymous legacy data with no owner to assign. New rows always carry the id from the student JWT. Aggregate queries that count people should use `COUNT(DISTINCT user_id)` and ignore nulls; queries that count students should filter `is_guest = false`.
-
-### Community services
-
-Added in `000011_services`.
-
-`services` holds student-facing community listings (tutoring, campus helpers, small businesses): title, owner, category, emoji/logo, phone/URL, JSONB `links`, status (`trial` / `active` / `frozen`), trial flag, and `started_at` / `expires_at`. Listing reads freeze expired rows before returning them.
-
-`service_clicks` records authenticated opens (`service_id`, `user_id`, optional page/link context, `device_type`), with cascade deletes from both `services` and `users`.
-
-`000010_stale_guest_cleanup_index` adds an index that backs the hourly job in `cmd/server` which deletes unclaimed guests idle longer than the stale TTL.
 
 ## Changing the schema (policy)
 
@@ -188,7 +174,7 @@ The [`internal/integration/`](../internal/integration/) package runs against rea
 INTEGRATION_DATABASE_URL="$DATABASE_URL" go test -tags=integration -race ./internal/integration/...
 ```
 
-Coverage includes guest/register HTTP flows, `/readyz`, user claim SQL, `/api/content` JSON shape, and community services create/list.
+Coverage includes guest/register HTTP flows, `/readyz`, user claim SQL, and `/api/content` JSON shape.
 
 ## Seed course content
 

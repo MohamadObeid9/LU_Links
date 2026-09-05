@@ -22,7 +22,6 @@ function _buildTree(
   links,
   extraSections,
   extraLinks,
-  services,
 ) {
   AppState.dbPrograms = programs.map((p) => ({
     ...p,
@@ -50,8 +49,6 @@ function _buildTree(
     links: extraLinks.filter((l) => l.section_id === sec.id)
       .sort(_naturalLinkSort),
   }));
-
-  AppState.dbServices = services || [];
 
   AppState.courseById = new Map();
   AppState.linkById = new Map();
@@ -85,7 +82,6 @@ function _contentPayload(data) {
     links: data.links || [],
     extra_sections: data.extra_sections || [],
     extra_links: data.extra_links || [],
-    services: data.services || [],
   };
 }
 
@@ -98,7 +94,6 @@ function _applyContent(payload) {
     payload.links,
     payload.extra_sections,
     payload.extra_links,
-    payload.services,
   );
 }
 
@@ -133,7 +128,6 @@ function _renderAfterLoad({ resetMobile = true } = {}) {
   renderCourses();
   syncProgramSectionHeading();
   if (AppState.currentProg === "all") renderExtra();
-  window.renderDesktopServiceSidebar?.();
   // Populate the course datalist for Report/Contribute autocomplete
   _populateCourseDatalist();
 }

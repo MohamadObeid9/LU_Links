@@ -2,7 +2,6 @@ package repository
 
 import (
 	"context"
-	"time"
 
 	"infolinks-backend/internal/models"
 )
@@ -16,7 +15,6 @@ type UserRepository interface {
 	CreateUser(ctx context.Context, u models.User) (models.User, error)
 	ClaimGuest(ctx context.Context, guestID int, u models.User) (models.User, error)
 	AdoptGuest(ctx context.Context, guestID int, userID int) error
-	DeleteStaleGuests(ctx context.Context, olderThan time.Time) (int64, error)
 	GetByID(ctx context.Context, id int) (models.User, error)
 	GetByCredentials(ctx context.Context, u models.User) (models.User, error)
 	AddFavorite(ctx context.Context, userID int, courseID int) error
@@ -104,17 +102,4 @@ type FeedbackRepository interface {
 	Update(ctx context.Context, status string, id int) error
 	Create(ctx context.Context, feedback models.Feedback) error
 	List(ctx context.Context, limit int, offset int, q string, status string) ([]models.Feedback, error)
-}
-
-type ServiceRepository interface {
-	List(ctx context.Context, limit int, offset int, q string) ([]models.Service, error)
-	Get(ctx context.Context, id int) (models.Service, error)
-	Create(ctx context.Context, s models.Service) (int, error)
-	Update(ctx context.Context, s models.Service, id int) error
-	Delete(ctx context.Context, id int) error
-	Renew(ctx context.Context, id int) error
-	SetStatus(ctx context.Context, id int, status string) error
-	FreezeExpired(ctx context.Context) error
-	InsertClick(ctx context.Context, click models.ServiceClick) error
-	GetClickCount(ctx context.Context, id int) (int, error)
 }

@@ -20,7 +20,7 @@ func (h *Handler) handleMCPServerCard(w http.ResponseWriter, r *http.Request) {
 		},
 		"description":      "Discover CNAM course materials, student auth, and analytics endpoints for Info Links.",
 		"documentationUrl": h.absURL("/api/docs"),
-		"iconUrl":          h.absURL("/assets/android-chrome-192x192.png"),
+		"iconUrl":          h.absURL("/web-app-manifest-192x192.png"),
 		"transport": map[string]any{
 			"type":     "streamable-http",
 			"endpoint": h.absURL("/mcp"),

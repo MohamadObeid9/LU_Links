@@ -590,16 +590,7 @@
         margin-bottom: 18px;
     }
 
-    .svc-link-row {
-        grid-template-columns: 1fr;
-    }
-
-    .svc-link-remove {
-        justify-self: end;
-    }
-
-    .admin-table-wrap + .admin-pager,
-    .admin-services-table {
+    .admin-table-wrap + .admin-pager {
         margin-top: 4px;
     }
 

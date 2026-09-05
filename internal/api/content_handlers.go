@@ -27,9 +27,6 @@ func (h *Handler) handleGetContent(w http.ResponseWriter, r *http.Request) {
 // CDN-cached or served from the in-memory student cache. Admin edits must
 // not wait on stale-while-revalidate at the edge or origin RAM.
 func (h *Handler) handleGetAdminContent(w http.ResponseWriter, r *http.Request) {
-	if err := h.serviceService.FreezeExpired(r.Context()); err != nil {
-		h.LoggerWithID(r).Error("freeze expired services failed", "error", err)
-	}
 	result, err := h.contentService.GetUncached(r.Context())
 	if err != nil {
 		h.LoggerWithID(r).Error("get content failed", "error", err)
