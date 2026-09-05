@@ -31,14 +31,11 @@ Plus parallel structures:
 ```text
 ExtraSection
   └── ExtraLink
-
-Service  (community listing; links stored as JSONB)
-ServiceClick
 ```
 
-**Structs:** `Program`, `Year`, `Semester`, `Course`, `Link`, `ExtraSection`, `ExtraLink`, `Service`, `ServiceLink`, `ServiceClick`
+**Structs:** `Program`, `Year`, `Semester`, `Course`, `Link`, `ExtraSection`, `ExtraLink`
 
-Each has `DisplayOrder` for frontend sorting where applicable. Foreign keys use `ProgramID`, `YearID`, `SemesterID`, `CourseID`, `SectionID`, `ServiceID`.
+Each has `DisplayOrder` for frontend sorting where applicable. Foreign keys use `ProgramID`, `YearID`, `SemesterID`, `CourseID`, `SectionID`.
 
 ---
 
@@ -48,14 +45,12 @@ Each has `DisplayOrder` for frontend sorting where applicable. Foreign keys use 
 |---|---|
 | `PageView` | Tracks which page was visited |
 | `LinkClick` | Tracks clicks on a specific link ID |
-| `ServiceClick` | Tracks opens on a community service card |
-| `ServiceDemand` | Aggregated service open counts for analytics |
 
-Simple structs — `PageView` has `Page`, `LinkClick` has `LinkID`, `ServiceClick` has `ServiceID`.
+Simple structs — `PageView` has `Page`, `LinkClick` has `LinkID`.
 
 ---
 
-### Partial update: `CoursePatch` and `ServicePatch`
+### Partial update: `CoursePatch`
 
 ```go
 type CoursePatch struct {
@@ -71,7 +66,7 @@ Pointer fields mean "only update if present in JSON":
 - `nil` → leave existing value
 - non-nil → apply new value
 
-Used by `PATCH /api/admin/courses/{id}` and `PATCH /api/admin/services/{id}` (`ServicePatch`). Merging happens in the service layer, not in the model.
+Used by `PATCH /api/admin/courses/{id}`. Merging happens in the service layer, not in the model.
 
 ---
 
@@ -107,8 +102,7 @@ type ContentResponse struct {
     Semesters     []Semester
     ExtraLinks    []ExtraLink
     ExtraSections []ExtraSection
-    Services      []Service
 }
 ```
 
-The live `/api/content` endpoint returns JSON built by Postgres (`json_build_object`), not by marshaling this struct in Go. Community services are also available via `GET /api/services`. The struct documents the expected shape.
+The live `/api/content` endpoint returns JSON built by Postgres (`json_build_object`), not by marshaling this struct in Go. The struct documents the expected shape.

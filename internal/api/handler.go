@@ -34,7 +34,6 @@ type Handler struct {
 	contributionService contributionService
 	extraSectionService extraSectionService
 	extraLinkService    extraLinkService
-	serviceService      serviceService
 }
 
 type Dependencies struct {
@@ -57,7 +56,6 @@ type Dependencies struct {
 	ContributionService contributionService
 	ExtraSectionService extraSectionService
 	ExtraLinkService    extraLinkService
-	ServiceService      serviceService
 }
 
 type dbPinger interface {
@@ -144,19 +142,6 @@ type extraLinkService interface {
 	Delete(ctx context.Context, idStr string) error
 }
 
-type serviceService interface {
-	List(ctx context.Context, limit int, offset int, q string) ([]models.Service, error)
-	Get(ctx context.Context, idStr string) (models.Service, error)
-	Create(ctx context.Context, svc models.Service) error
-	Update(ctx context.Context, patch models.ServicePatch, idStr string) error
-	Delete(ctx context.Context, idStr string) error
-	Renew(ctx context.Context, idStr string, durationDays int) error
-	Freeze(ctx context.Context, idStr string) error
-	Unfreeze(ctx context.Context, idStr string) error
-	TrackClick(ctx context.Context, click models.ServiceClick) error
-	FreezeExpired(ctx context.Context) error
-}
-
 func NewHandler(deps Dependencies) (*Handler, error) {
 
 	if deps.Logger == nil {
@@ -223,10 +208,6 @@ func NewHandler(deps Dependencies) (*Handler, error) {
 		return nil, fmt.Errorf("extra link service is required")
 	}
 
-	if deps.ServiceService == nil {
-		return nil, fmt.Errorf("service service is required")
-	}
-
 	newHandler := Handler{
 		db:                  deps.DB,
 		logger:              deps.Logger,
@@ -247,7 +228,6 @@ func NewHandler(deps Dependencies) (*Handler, error) {
 		extraLinkService:    deps.ExtraLinkService,
 		contributionService: deps.ContributionService,
 		extraSectionService: deps.ExtraSectionService,
-		serviceService:      deps.ServiceService,
 		httpClient:          http.DefaultClient,
 	}
 

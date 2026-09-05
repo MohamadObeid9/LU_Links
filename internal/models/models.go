@@ -44,7 +44,7 @@ type UserListItem struct {
 
 // UserActivityEvent is one entry of a student activity timeline.
 type UserActivityEvent struct {
-	Type       string `json:"type"` // visit, link_click, service_click, report, contribution, feedback, favorite_added, favorite_removed
+	Type       string `json:"type"` // visit, link_click, report, contribution, feedback, favorite_added, favorite_removed
 	At         string `json:"at"`
 	Summary    string `json:"summary"`
 	RefID      int    `json:"ref_id"`
@@ -88,9 +88,7 @@ type AnalyticsSummary struct {
 	Inbox                   AnalyticsInbox    `json:"inbox"`
 	Browse                  BrowseDepth       `json:"browse"`
 	TopCourses              []CourseDemand    `json:"top_courses"`
-	TopServices             []ServiceDemand   `json:"top_services"`
 	ZeroClickCourses        []CourseDemand    `json:"zero_click_courses"`
-	ZeroClickServices       []ServiceDemand   `json:"zero_click_services"`
 	ZeroClickLinks          []DeadLink        `json:"zero_click_links"`
 	TopFavorites            []CourseDemand    `json:"top_favorites"`
 	VisitHeatmap            []HeatmapCell     `json:"visit_heatmap"`
@@ -133,14 +131,6 @@ type CourseDemand struct {
 	Code        string `json:"code"`
 	Count       int    `json:"count"`
 	ProgramName string `json:"program_name"`
-}
-
-// ServiceDemand is a community service ranked by opens or ignored in range.
-type ServiceDemand struct {
-	ServiceID int    `json:"service_id"`
-	Title     string `json:"title"`
-	Category  string `json:"category"`
-	Count     int    `json:"count"`
 }
 
 // DeadLink is a resource with no clicks in the selected range.
@@ -335,65 +325,6 @@ type LinkClick struct {
 	ClickedAt   string `json:"clicked_at"`
 }
 
-// ServiceLink is one link displayed inside a community service card.
-type ServiceLink struct {
-	Label string `json:"label"`
-	URL   string `json:"url"`
-}
-
-// Service represents a community listing (tutoring, student business, etc.).
-type Service struct {
-	ID           int           `json:"id"`
-	Title        string        `json:"title"`
-	OwnerName    string        `json:"owner_name"`
-	Category     string        `json:"category"`
-	Emoji        string        `json:"emoji"`
-	Description  string        `json:"description"`
-	LogoURL      string        `json:"logo_url"`
-	Phone        string        `json:"phone"`
-	URL          string        `json:"url"`
-	Links        []ServiceLink `json:"links"`
-	Status       string        `json:"status"`
-	Trial        bool          `json:"trial"`
-	StartedAt    string        `json:"started_at"`
-	ExpiresAt    string        `json:"expires_at"`
-	DisplayOrder int           `json:"display_order"`
-	CreatedAt    string        `json:"created_at,omitempty"`
-	UpdatedAt    string        `json:"updated_at,omitempty"`
-	Clicks       int           `json:"clicks,omitempty"`
-}
-
-// ServicePatch is used for admin updates to a service.
-type ServicePatch struct {
-	Title        *string        `json:"title,omitempty"`
-	OwnerName    *string        `json:"owner_name,omitempty"`
-	Category     *string        `json:"category,omitempty"`
-	Emoji        *string        `json:"emoji,omitempty"`
-	Description  *string        `json:"description,omitempty"`
-	LogoURL      *string        `json:"logo_url,omitempty"`
-	Phone        *string        `json:"phone,omitempty"`
-	URL          *string        `json:"url,omitempty"`
-	Links        *[]ServiceLink `json:"links,omitempty"`
-	Status       *string        `json:"status,omitempty"`
-	Trial        *bool          `json:"trial,omitempty"`
-	StartedAt    *string        `json:"started_at,omitempty"`
-	ExpiresAt    *string        `json:"expires_at,omitempty"`
-	DisplayOrder *int           `json:"display_order,omitempty"`
-}
-
-// ServiceClick tracks a click on a community service card.
-type ServiceClick struct {
-	ID          int    `json:"id"`
-	ServiceID   int    `json:"service_id"`
-	UserID      int    `json:"user_id,omitempty"`
-	PageContext string `json:"page_context,omitempty"`
-	LinkTarget  string `json:"link_target,omitempty"`
-	URL         string `json:"url,omitempty"`         // optional; used to infer link_target when omitted
-	ClickedURL  string `json:"clicked_url,omitempty"` // alias for url
-	ClickedAt   string `json:"clicked_at"`
-	DeviceType  string `json:"device_type,omitempty"`
-}
-
 // ContentResponse is the big JSON object we send to the frontend.
 type ContentResponse struct {
 	Links         []Link         `json:"links"`
@@ -403,5 +334,4 @@ type ContentResponse struct {
 	Semesters     []Semester     `json:"semesters"`
 	ExtraLinks    []ExtraLink    `json:"extra_links"`
 	ExtraSections []ExtraSection `json:"extra_sections"`
-	Services      []Service      `json:"services"`
 }

@@ -33,7 +33,6 @@ const truncateTablesQuery = `
 TRUNCATE TABLE
 	browse_events,
 	search_events,
-	service_clicks,
 	favorite_events,
 	link_clicks,
 	page_views,
@@ -48,7 +47,6 @@ TRUNCATE TABLE
 	semesters,
 	years,
 	programs,
-	services,
 	users
 RESTART IDENTITY CASCADE
 `
@@ -124,7 +122,6 @@ func newTestHandler(t *testing.T, dbClient *database.Client) *api.Handler {
 		ExtraLinkService:    deps.ExtraLinkService,
 		ContributionService: deps.ContributionService,
 		ExtraSectionService: deps.ExtraSectionService,
-		ServiceService:      deps.ServiceService,
 		Logger:              logger,
 	})
 	if err != nil {
@@ -155,7 +152,3 @@ func newContentRepo(t *testing.T, db *sql.DB) repository.ContentRepository {
 	return repository.NewPostgresContentRepository(db)
 }
 
-func newServiceRepo(t *testing.T, db *sql.DB) repository.ServiceRepository {
-	t.Helper()
-	return repository.NewPostgresServiceRepository(db)
-}

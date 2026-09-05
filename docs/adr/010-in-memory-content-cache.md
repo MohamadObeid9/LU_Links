@@ -17,8 +17,8 @@ Keep a **process-local** copy of the public content payload:
 - 60s TTL
 - `singleflight` so concurrent misses share one query
 - public `GET /api/content` reads the cache (`Get`)
-- admin `GET /api/admin/content` bypasses it (`GetUncached`) and still freezes expired services
-- successful mutations of courses, links, extra sections/links, and services call `Invalidate()`
+- admin `GET /api/admin/content` bypasses it (`GetUncached`)
+- successful mutations of courses, links, and extra sections/links call `Invalidate()`
 
 Cloudflare + the 10-minute warm-up cron stay in place. This cache is for the origin, not a replacement for the CDN.
 

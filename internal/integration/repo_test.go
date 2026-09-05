@@ -6,7 +6,6 @@ import (
 	"context"
 	"encoding/json"
 	"testing"
-	"time"
 
 	"infolinks-backend/internal/errs"
 	"infolinks-backend/internal/models"
@@ -78,54 +77,9 @@ func TestRepoContentGetReturnsJSON(t *testing.T) {
 	if err := json.Unmarshal(raw, &payload); err != nil {
 		t.Fatalf("content is not valid JSON: %v", err)
 	}
-	for _, key := range []string{"programs", "years", "courses", "links", "services"} {
+	for _, key := range []string{"programs", "years", "courses", "links"} {
 		if _, ok := payload[key]; !ok {
 			t.Fatalf("content JSON missing key %q", key)
 		}
-	}
-}
-
-func TestRepoServiceCreateAndList(t *testing.T) {
-	dbClient := openTestDB(t)
-	resetDB(t, dbClient.DB)
-
-	repo := newServiceRepo(t, dbClient.DB)
-	ctx := context.Background()
-
-	expires := time.Now().Add(15 * 24 * time.Hour).Format(time.RFC3339)
-	started := time.Now().Format(time.RFC3339)
-
-	id, err := repo.Create(ctx, models.Service{
-		Title:        "Tutoring",
-		OwnerName:    "Ziad",
-		Category:     "tutoring",
-		Status:       "trial",
-		Trial:        true,
-		StartedAt:    started,
-		ExpiresAt:    expires,
-		DisplayOrder: 1,
-		Links: []models.ServiceLink{
-			{Label: "Telegram", URL: "https://t.me/example"},
-		},
-	})
-	if err != nil {
-		t.Fatalf("Create service: %v", err)
-	}
-	if id <= 0 {
-		t.Fatalf("service id: got %d want > 0", id)
-	}
-
-	services, err := repo.List(ctx, 10, 0, "")
-	if err != nil {
-		t.Fatalf("List services: %v", err)
-	}
-	if len(services) != 1 {
-		t.Fatalf("list len: got %d want 1", len(services))
-	}
-	if services[0].Title != "Tutoring" {
-		t.Fatalf("title: got %q", services[0].Title)
-	}
-	if len(services[0].Links) != 1 || services[0].Links[0].URL != "https://t.me/example" {
-		t.Fatalf("links: got %#v", services[0].Links)
 	}
 }

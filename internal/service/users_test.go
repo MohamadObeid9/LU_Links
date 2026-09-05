@@ -5,7 +5,6 @@ import (
 	"errors"
 	"reflect"
 	"testing"
-	"time"
 
 	"infolinks-backend/internal/errs"
 	"infolinks-backend/internal/models"
@@ -36,11 +35,6 @@ type fakeUserRepo struct {
 	adoptGuestID int
 	adoptUserID  int
 	adoptErr     error
-
-	staleCalls  int
-	staleCutoff time.Time
-	staleResult int64
-	staleErr    error
 
 	byIDCalls  int
 	byIDResult models.User
@@ -113,15 +107,6 @@ func (f *fakeUserRepo) AdoptGuest(ctx context.Context, guestID int, userID int) 
 	f.adoptGuestID = guestID
 	f.adoptUserID = userID
 	return f.adoptErr
-}
-
-func (f *fakeUserRepo) DeleteStaleGuests(ctx context.Context, olderThan time.Time) (int64, error) {
-	f.staleCalls++
-	f.staleCutoff = olderThan
-	if f.staleErr != nil {
-		return 0, f.staleErr
-	}
-	return f.staleResult, nil
 }
 
 func (f *fakeUserRepo) AddFavorite(ctx context.Context, userID int, courseID int) error {
@@ -761,39 +746,4 @@ func TestUserService_GetUserDetail(t *testing.T) {
 			}
 		})
 	}
-}
-
-func TestUserService_DeleteStaleGuests(t *testing.T) {
-	t.Run("uses default ttl and returns count", func(t *testing.T) {
-		repo := &fakeUserRepo{staleResult: 7}
-		svc := NewUserService(repo)
-
-		before := time.Now()
-		got, err := svc.DeleteStaleGuests(context.Background(), 0)
-		after := time.Now()
-		if err != nil {
-			t.Fatalf("DeleteStaleGuests: %v", err)
-		}
-		if got != 7 {
-			t.Fatalf("deleted = %d, want 7", got)
-		}
-		if repo.staleCalls != 1 {
-			t.Fatalf("repo calls = %d, want 1", repo.staleCalls)
-		}
-		wantEarliest := before.Add(-StaleGuestTTL)
-		wantLatest := after.Add(-StaleGuestTTL)
-		if repo.staleCutoff.Before(wantEarliest) || repo.staleCutoff.After(wantLatest) {
-			t.Fatalf("cutoff %v outside [%v, %v]", repo.staleCutoff, wantEarliest, wantLatest)
-		}
-	})
-
-	t.Run("propagates repo error", func(t *testing.T) {
-		repo := &fakeUserRepo{staleErr: errs.ErrDatabaseDown}
-		svc := NewUserService(repo)
-
-		_, err := svc.DeleteStaleGuests(context.Background(), StaleGuestTTL)
-		if !errors.Is(err, errs.ErrDatabaseDown) {
-			t.Fatalf("got %v, want %v", err, errs.ErrDatabaseDown)
-		}
-	})
 }

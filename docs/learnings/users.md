@@ -184,10 +184,8 @@ The array update is also written to be idempotent — favoriting an already-favo
 | Action | Anonymous | Guest | Registered |
 |---|---|---|---|
 | Browse, search, expand courses | yes | yes | yes |
-| Browse community services | yes | yes | yes |
 | Page view recorded | not attributed | yes | yes |
 | Open an external link | no | no | yes |
-| Open a community service link | no | no | yes |
 | Report / contribute / feedback | no | no | yes |
 | Favorite a course | no | no | yes |
 
@@ -205,4 +203,3 @@ Admin requests keep skipping analytics inserts, so admin browsing does not pollu
 - Writing `favorite_course_ids` and `favorite_events` outside one transaction
 - Treating `COUNT(*) FROM users` as the student count — filter `WHERE is_guest = false`
 - Accepting a guest token on a route that must attribute activity to a named person
-- Assuming unclaimed guests live forever — idle guests (`last_seen_at` older than 24h) are deleted by the server cleanup job; their analytics cascade away

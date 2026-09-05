@@ -39,7 +39,6 @@ type handlerTestDeps struct {
 	contribution *fakeContributionService
 	extraSection *fakeExtraSectionService
 	extraLink    *fakeExtraLinkService
-	service      *fakeServiceService
 }
 
 type testHandlerOption func(*handlerTestDeps)
@@ -109,7 +108,6 @@ func testHandler(t *testing.T, opts ...testHandlerOption) *Handler {
 		contribution: &fakeContributionService{},
 		extraSection: &fakeExtraSectionService{},
 		extraLink:    &fakeExtraLinkService{},
-		service:      &fakeServiceService{},
 	}
 	for _, opt := range opts {
 		opt(&deps)
@@ -140,7 +138,6 @@ func testHandler(t *testing.T, opts ...testHandlerOption) *Handler {
 		ContributionService: deps.contribution,
 		ExtraSectionService: deps.extraSection,
 		ExtraLinkService:    deps.extraLink,
-		ServiceService:      deps.service,
 	})
 	if err != nil {
 		t.Fatalf("NewHandler: %v", err)

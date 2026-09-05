@@ -30,9 +30,7 @@ var analyticsQueryOrder = []string{
 	analyticsTopLinksTodayQuery,
 	analyticsVisitorsTodayByClicksQuery,
 	analyticsTopCoursesQuery,
-	analyticsTopServicesQuery,
 	analyticsZeroClickCoursesQuery,
-	analyticsZeroClickServicesQuery,
 	analyticsZeroClickLinksQuery,
 	analyticsTopFavoritesQuery,
 	analyticsVisitHeatmapQuery,
@@ -48,10 +46,8 @@ func analyticsQueryNeedsDays(query string) bool {
 		analyticsTopLinksQuery,
 		analyticsTopUsersQuery,
 		analyticsTopCoursesQuery,
-		analyticsTopServicesQuery,
-		analyticsZeroClickCoursesQuery,
-		analyticsZeroClickServicesQuery,
-		analyticsZeroClickLinksQuery,
+			analyticsZeroClickCoursesQuery,
+			analyticsZeroClickLinksQuery,
 		analyticsVisitHeatmapQuery,
 		analyticsClickHeatmapQuery,
 		analyticsSearchTermsQuery:
@@ -130,9 +126,7 @@ func TestAnalyticsRepository_GetSummary(t *testing.T) {
 					HasMore: true,
 				},
 				TopCourses:        []models.CourseDemand{{CourseID: 9, Name: "Réseaux", Code: "NFA035", Count: 12, ProgramName: "Licence Info"}},
-				TopServices:       []models.ServiceDemand{{ServiceID: 3, Title: "Rolita's Soap", Category: "Beauty", Count: 5}},
 				ZeroClickCourses:  []models.CourseDemand{{CourseID: 3, Name: "Quiet Course", Code: "QC01", Count: 0, ProgramName: "AISL"}},
-				ZeroClickServices: []models.ServiceDemand{{ServiceID: 8, Title: "Testing Service 5", Category: "testing", Count: 0}},
 				ZeroClickLinks:   []models.DeadLink{{Kind: "link", ID: 4, Label: "Link 1", CourseName: "Quiet Course", ProgramName: "IRSM"}},
 				TopFavorites:     []models.CourseDemand{{CourseID: 9, Name: "Réseaux", Code: "NFA035", Count: 6, ProgramName: "Licence Info"}},
 				VisitHeatmap:     []models.HeatmapCell{{Dow: 1, Hour: 14, Count: 7}},
@@ -209,9 +203,7 @@ func TestAnalyticsRepository_GetSummary_visitorsSortName(t *testing.T) {
 			AddRow(1, "ali", "ahmad", 1, 0),
 	)
 	mock.ExpectQuery(analyticsTopCoursesQuery).WithArgs(7).WillReturnRows(sqlmock.NewRows([]string{"id", "name", "code", "count", "program_name"}))
-	mock.ExpectQuery(analyticsTopServicesQuery).WithArgs(7).WillReturnRows(sqlmock.NewRows([]string{"id", "title", "category", "count"}))
 	mock.ExpectQuery(analyticsZeroClickCoursesQuery).WithArgs(7).WillReturnRows(sqlmock.NewRows([]string{"id", "name", "code", "count", "program_name"}))
-	mock.ExpectQuery(analyticsZeroClickServicesQuery).WithArgs(7).WillReturnRows(sqlmock.NewRows([]string{"id", "title", "category", "count"}))
 	mock.ExpectQuery(analyticsZeroClickLinksQuery).WithArgs(7).WillReturnRows(sqlmock.NewRows([]string{"kind", "id", "label", "course_name", "program_name"}))
 	mock.ExpectQuery(analyticsTopFavoritesQuery).WillReturnRows(sqlmock.NewRows([]string{"id", "name", "code", "count", "program_name"}))
 	mock.ExpectQuery(analyticsVisitHeatmapQuery).WithArgs(7).WillReturnRows(sqlmock.NewRows([]string{"dow", "hour", "count"}))
@@ -278,12 +270,8 @@ func analyticsRowsFor(query string, params AnalyticsSummaryParams) *sqlmock.Rows
 		return sqlmock.NewRows([]string{"link_id", "extra_link_id", "clicks"}).AddRow(1, nil, 3)
 	case analyticsTopCoursesQuery:
 		return sqlmock.NewRows([]string{"id", "name", "code", "count", "program_name"}).AddRow(9, "Réseaux", "NFA035", 12, "Licence Info")
-	case analyticsTopServicesQuery:
-		return sqlmock.NewRows([]string{"id", "title", "category", "count"}).AddRow(3, "Rolita's Soap", "Beauty", 5)
 	case analyticsZeroClickCoursesQuery:
 		return sqlmock.NewRows([]string{"id", "name", "code", "count", "program_name"}).AddRow(3, "Quiet Course", "QC01", 0, "AISL")
-	case analyticsZeroClickServicesQuery:
-		return sqlmock.NewRows([]string{"id", "title", "category", "count"}).AddRow(8, "Testing Service 5", "testing", 0)
 	case analyticsZeroClickLinksQuery:
 		return sqlmock.NewRows([]string{"kind", "id", "label", "course_name", "program_name"}).AddRow("link", 4, "Link 1", "Quiet Course", "IRSM")
 	case analyticsTopFavoritesQuery:

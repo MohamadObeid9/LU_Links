@@ -228,7 +228,6 @@ function _buildCourseCard(c, opts = {}) {
     </div>`;
 }
 
-const TELEGRAM_PROMOTE_URL = "https://t.me/Info_Links_Services_Guide";
 const TELEGRAM_CONTRIBUTE_URL = "https://t.me/Info_Links_Contributing_Guide";
 
 function hintLink(url, label) {
@@ -237,8 +236,6 @@ function hintLink(url, label) {
 
 const FAVORITES_HINT =
   "Mark the courses you use most with ★ to reach them more easily in the My Courses section.";
-
-const COMMUNITY_PROMOTE_HINT = `Want to promote your service on Info Links? Contact us on ${hintLink(TELEGRAM_PROMOTE_URL, "Telegram")} to know more.`;
 
 const CONTRIBUTE_HINT = `Want to help and contribute to Info Links? Visit our ${hintLink(TELEGRAM_CONTRIBUTE_URL, "Telegram guide")} to know more on how you can help us make Info Links better.`;
 
@@ -259,7 +256,6 @@ function hintCardHtml(title, bodyHtml, extraClass = "") {
 }
 
 const FAVORITES_HINT_CARD = hintCardHtml("Favorites", FAVORITES_HINT);
-const COMMUNITY_HINT_CARD = hintCardHtml("Community Services", COMMUNITY_PROMOTE_HINT);
 const CONTRIBUTE_HINT_CARD = hintCardHtml("Contributing", CONTRIBUTE_HINT);
 const LINK_TYPES_HINT_CARD = hintCardHtml("Link types", linkTypesLegendHtml(), "fav-hint--link-types");
 
@@ -267,7 +263,6 @@ function tipsSectionHtml() {
   return `
     <div class="tips-section">
       ${FAVORITES_HINT_CARD}
-      ${COMMUNITY_HINT_CARD}
       ${CONTRIBUTE_HINT_CARD}
       ${LINK_TYPES_HINT_CARD}
     </div>`;
@@ -391,9 +386,7 @@ export {
   adminTd,
   adminCell,
   FAVORITES_HINT,
-  COMMUNITY_PROMOTE_HINT,
   FAVORITES_HINT_CARD,
-  COMMUNITY_HINT_CARD,
   collectFavoriteCourses,
   setSectionHint,
   tipsSectionHtml,

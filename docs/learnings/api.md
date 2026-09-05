@@ -83,8 +83,6 @@ Three registration functions in `router.go`:
 - `GET /openapi.json` — OpenAPI 3.1 description (`service-desc`)
 - `GET /api/docs` — human API docs in markdown (`service-doc`)
 - `POST /api/reports`, `/api/feedback`, `/api/page_views`, … — user submissions
-- `GET /api/services` — public community service listings (expired trials auto-freeze on read)
-- `POST /api/service_clicks` — track a service card open (requires student JWT)
 - `POST /api/auth/login` — admin login, returns JWT
 - `GET /healthz`, `GET /readyz` — probes for Render/load balancers
 - `GET /metrics` — provide the metrics for **Prometheus** , protected by a username/password
@@ -92,7 +90,6 @@ Three registration functions in `router.go`:
 **Admin (`registerAdminRoutes`)** — every route wrapped with `middleware.RequireAdmin`:
 
 - CRUD on links, courses, extra sections/links
-- Community services CRUD plus renew / freeze / unfreeze
 - List/update/delete reports, feedback, contributions
 - Analytics: page views, link clicks, summary dashboards
 
@@ -205,7 +202,7 @@ Render uses `/readyz` to decide whether to send traffic. `/healthz` answers "is 
 
 ### Caching (`GET /api/content` and static files)
 
-Origin keeps a **process-local copy** of `GET /api/content` (60s TTL, `singleflight` on miss) so a flood that bypasses Cloudflare does not run the CTE once per request. Admin `GET /api/admin/content` always hits Postgres (`GetUncached`). Successful course/link/extra/service mutations call `Invalidate()`.
+Origin keeps a **process-local copy** of `GET /api/content` (60s TTL, `singleflight` on miss) so a flood that bypasses Cloudflare does not run the CTE once per request. Admin `GET /api/admin/content` always hits Postgres (`GetUncached`). Successful course/link/extra mutations call `Invalidate()`.
 
 Cloudflare still sits in front of Render:
 
@@ -247,7 +244,6 @@ The HTTP server is an explicit `http.Server` (not bare `ListenAndServe`):
 | Timeouts | `ReadHeaderTimeout` 5s, `ReadTimeout` 15s, `WriteTimeout` 60s, `IdleTimeout` 60s |
 | Signals | `SIGINT` / `SIGTERM` via `signal.NotifyContext` |
 | Shutdown | `Shutdown` with a 10s budget drains in-flight requests |
-| Background | Stale-guest cleanup ticker stops when the signal context cancels |
 | DB | `defer dbClient.Close()` runs after shutdown returns |
 
 Render sends `SIGTERM` on deploy — without this path, in-flight requests are cut and the DB pool may not drain cleanly.
