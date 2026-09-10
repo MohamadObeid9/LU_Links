@@ -5,97 +5,113 @@
       "id": 1,
       "name": "Faculty of Science",
       "slug": "faculty-of-science",
-      "display_order": 1
+      "display_order": 1,
+      "name_ar": "كلية العلوم"
     },
     {
       "id": 2,
       "name": "Faculty of Engineering",
       "slug": "faculty-of-engineering",
-      "display_order": 2
+      "display_order": 2,
+      "name_ar": "كلية الهندسة"
     },
     {
       "id": 3,
       "name": "Faculty of Medical Sciences",
       "slug": "faculty-of-medical-sciences",
-      "display_order": 3
+      "display_order": 3,
+      "name_ar": "كلية العلوم الطبية"
     },
     {
       "id": 4,
       "name": "Faculty of Dental Medicine",
       "slug": "faculty-of-dental-medicine",
-      "display_order": 4
+      "display_order": 4,
+      "name_ar": "كلية طب الأسنان"
     },
     {
       "id": 5,
       "name": "Faculty of Pharmacy",
       "slug": "faculty-of-pharmacy",
-      "display_order": 5
+      "display_order": 5,
+      "name_ar": "كلية الصيدلة"
     },
     {
       "id": 6,
       "name": "Faculty of Public Health",
       "slug": "faculty-of-public-health",
-      "display_order": 6
+      "display_order": 6,
+      "name_ar": "كلية الصحة العامة"
     },
     {
       "id": 7,
       "name": "Faculty of Agronomy",
       "slug": "faculty-of-agronomy",
-      "display_order": 7
+      "display_order": 7,
+      "name_ar": "كلية الزراعة"
     },
     {
       "id": 8,
       "name": "Faculty of Technology",
       "slug": "faculty-of-technology",
-      "display_order": 8
+      "display_order": 8,
+      "name_ar": "كلية التكنولوجيا"
     },
     {
       "id": 9,
       "name": "Faculty of Economics & Business Administration",
       "slug": "faculty-of-economics-and-business-administration",
-      "display_order": 9
+      "display_order": 9,
+      "name_ar": "كلية العلوم الاقتصادية وإدارة الأعمال"
     },
     {
       "id": 10,
       "name": "Faculty of Law, Political & Administrative Sciences",
       "slug": "faculty-of-law-political-and-administrative-sciences",
-      "display_order": 10
+      "display_order": 10,
+      "name_ar": "كلية الحقوق والعلوم السياسية والإدارية"
     },
     {
       "id": 11,
       "name": "Faculty of Information",
       "slug": "faculty-of-information",
-      "display_order": 11
+      "display_order": 11,
+      "name_ar": "كلية الإعلام"
     },
     {
       "id": 12,
       "name": "Faculty of Tourism & Hospitality Management",
       "slug": "faculty-of-tourism-and-hospitality-management",
-      "display_order": 12
+      "display_order": 12,
+      "name_ar": "كلية السياحة وإدارة الفنادق"
     },
     {
       "id": 13,
       "name": "Faculty of Letters & Human Sciences",
       "slug": "faculty-of-letters-and-human-sciences",
-      "display_order": 13
+      "display_order": 13,
+      "name_ar": "كلية الآداب والعلوم الإنسانية"
     },
     {
       "id": 14,
       "name": "Faculty of Fine Arts & Architecture",
       "slug": "faculty-of-fine-arts-and-architecture",
-      "display_order": 14
+      "display_order": 14,
+      "name_ar": "كلية الفنون الجميلة والعمارة"
     },
     {
       "id": 15,
       "name": "Institute of Social Sciences",
       "slug": "institute-of-social-sciences",
-      "display_order": 15
+      "display_order": 15,
+      "name_ar": "معهد العلوم الاجتماعية"
     },
     {
       "id": 16,
       "name": "Faculty of Pedagogy",
       "slug": "faculty-of-pedagogy",
-      "display_order": 16
+      "display_order": 16,
+      "name_ar": "كلية التربية"
     }
   ],
   "branches": [
@@ -103,115 +119,134 @@
       "id": 1,
       "name": "Hadath",
       "slug": "hadath",
-      "display_order": 1
+      "display_order": 1,
+      "name_ar": "الحدث"
     },
     {
       "id": 2,
       "name": "Fanar",
       "slug": "fanar",
-      "display_order": 2
+      "display_order": 2,
+      "name_ar": "الفنار"
     },
     {
       "id": 3,
       "name": "Tripoli",
       "slug": "tripoli",
-      "display_order": 3
+      "display_order": 3,
+      "name_ar": "طرابلس"
     },
     {
       "id": 4,
       "name": "Zahle",
       "slug": "zahle",
-      "display_order": 4
+      "display_order": 4,
+      "name_ar": "زحلة"
     },
     {
       "id": 5,
       "name": "Nabatieh",
       "slug": "nabatieh",
-      "display_order": 5
+      "display_order": 5,
+      "name_ar": "النبطية"
     },
     {
       "id": 6,
       "name": "Roumieh",
       "slug": "roumieh",
-      "display_order": 6
+      "display_order": 6,
+      "name_ar": "رومية"
     },
     {
       "id": 7,
       "name": "Saida",
       "slug": "saida",
-      "display_order": 7
+      "display_order": 7,
+      "name_ar": "صيدا"
     },
     {
       "id": 8,
       "name": "Dekwaneh",
       "slug": "dekwaneh",
-      "display_order": 8
+      "display_order": 8,
+      "name_ar": "الدكوانة"
     },
     {
       "id": 9,
       "name": "Abey",
       "slug": "abey",
-      "display_order": 9
+      "display_order": 9,
+      "name_ar": "عبيه"
     },
     {
       "id": 10,
       "name": "Achrafieh",
       "slug": "achrafieh",
-      "display_order": 10
+      "display_order": 10,
+      "name_ar": "الأشرفية"
     },
     {
       "id": 11,
       "name": "Aley",
       "slug": "aley",
-      "display_order": 11
+      "display_order": 11,
+      "name_ar": "عاليه"
     },
     {
       "id": 12,
       "name": "Rachaya",
       "slug": "rachaya",
-      "display_order": 12
+      "display_order": 12,
+      "name_ar": "راشيا"
     },
     {
       "id": 13,
       "name": "Jal El Dib",
       "slug": "jal-el-dib",
-      "display_order": 13
+      "display_order": 13,
+      "name_ar": "جل الديب"
     },
     {
       "id": 14,
       "name": "Bouchrieh",
       "slug": "bouchrieh",
-      "display_order": 14
+      "display_order": 14,
+      "name_ar": "البوشرية"
     },
     {
       "id": 15,
       "name": "Bir Hassan",
       "slug": "bir-hassan",
-      "display_order": 15
+      "display_order": 15,
+      "name_ar": "بئر حسن"
     },
     {
       "id": 16,
       "name": "Furn El Chebbak",
       "slug": "furn-el-chebbak",
-      "display_order": 16
+      "display_order": 16,
+      "name_ar": "فرن الشباك"
     },
     {
       "id": 17,
       "name": "Rabieh",
       "slug": "rabieh",
-      "display_order": 17
+      "display_order": 17,
+      "name_ar": "الرابية"
     },
     {
       "id": 18,
       "name": "Hadath / Unesco",
       "slug": "hadath-unesco",
-      "display_order": 18
+      "display_order": 18,
+      "name_ar": "الحدث / اليونسكو"
     },
     {
       "id": 19,
       "name": "New Rawda",
       "slug": "new-rawda",
-      "display_order": 19
+      "display_order": 19,
+      "name_ar": "الروضة الجديدة"
     }
   ],
   "faculty_branches": [
@@ -418,497 +453,568 @@
       "faculty_id": 1,
       "name": "Computer Science / Informatics",
       "slug": "computer-science-informatics",
-      "display_order": 1
+      "display_order": 1,
+      "name_ar": "المعلوماتية"
     },
     {
       "id": 2,
       "faculty_id": 1,
       "name": "Mathematics",
       "slug": "mathematics",
-      "display_order": 2
+      "display_order": 2,
+      "name_ar": "الرياضيات"
     },
     {
       "id": 3,
       "faculty_id": 1,
       "name": "Applied Mathematics",
       "slug": "applied-mathematics",
-      "display_order": 3
+      "display_order": 3,
+      "name_ar": "الرياضيات التطبيقية"
     },
     {
       "id": 4,
       "faculty_id": 1,
       "name": "Physics",
       "slug": "physics",
-      "display_order": 4
+      "display_order": 4,
+      "name_ar": "الفيزياء"
     },
     {
       "id": 5,
       "faculty_id": 1,
       "name": "Chemistry",
       "slug": "chemistry",
-      "display_order": 5
+      "display_order": 5,
+      "name_ar": "الكيمياء"
     },
     {
       "id": 6,
       "faculty_id": 1,
       "name": "Biochemistry",
       "slug": "biochemistry",
-      "display_order": 6
+      "display_order": 6,
+      "name_ar": "الكيمياء الحيوية"
     },
     {
       "id": 7,
       "faculty_id": 1,
       "name": "Life & Earth Sciences / Biology",
       "slug": "life-and-earth-sciences-biology",
-      "display_order": 7
+      "display_order": 7,
+      "name_ar": "علوم الحياة والأرض"
     },
     {
       "id": 8,
       "faculty_id": 1,
       "name": "Electronics",
       "slug": "electronics",
-      "display_order": 8
+      "display_order": 8,
+      "name_ar": "الإلكترونيك"
     },
     {
       "id": 9,
       "faculty_id": 2,
       "name": "Civil Engineering",
       "slug": "civil-engineering",
-      "display_order": 1
+      "display_order": 1,
+      "name_ar": "الهندسة المدنية"
     },
     {
       "id": 10,
       "faculty_id": 2,
       "name": "Electrical & Electronics Engineering",
       "slug": "electrical-and-electronics-engineering",
-      "display_order": 2
+      "display_order": 2,
+      "name_ar": "الهندسة الكهربائية والإلكترونية"
     },
     {
       "id": 11,
       "faculty_id": 2,
       "name": "Mechanical Engineering",
       "slug": "mechanical-engineering",
-      "display_order": 3
+      "display_order": 3,
+      "name_ar": "الهندسة الميكانيكية"
     },
     {
       "id": 12,
       "faculty_id": 2,
       "name": "Computer & Telecom Engineering",
       "slug": "computer-and-telecom-engineering",
-      "display_order": 4
+      "display_order": 4,
+      "name_ar": "هندسة الكمبيوتر والاتصالات"
     },
     {
       "id": 13,
       "faculty_id": 2,
       "name": "Industrial Chemistry & Petrochemical Engineering",
       "slug": "industrial-chemistry-and-petrochemical-engineering",
-      "display_order": 5
+      "display_order": 5,
+      "name_ar": "الهندسة الكيميائية الصناعية والبتروكيميائية"
     },
     {
       "id": 14,
       "faculty_id": 3,
       "name": "General Medicine - General Education Cycle",
       "slug": "general-medicine-general-education-cycle",
-      "display_order": 1
+      "display_order": 1,
+      "name_ar": "الطب العام - المرحلة الأولى"
     },
     {
       "id": 15,
       "faculty_id": 4,
       "name": "Dentistry Degree Cycle",
       "slug": "dentistry-degree-cycle",
-      "display_order": 1
+      "display_order": 1,
+      "name_ar": "طب الأسنان"
     },
     {
       "id": 16,
       "faculty_id": 5,
       "name": "Pharmacy Degree Cycle",
       "slug": "pharmacy-degree-cycle",
-      "display_order": 1
+      "display_order": 1,
+      "name_ar": "الصيدلة"
     },
     {
       "id": 17,
       "faculty_id": 6,
       "name": "Nursing Sciences",
       "slug": "nursing-sciences",
-      "display_order": 1
+      "display_order": 1,
+      "name_ar": "العلوم التمريضية"
     },
     {
       "id": 18,
       "faculty_id": 6,
       "name": "Physical Therapy",
       "slug": "physical-therapy",
-      "display_order": 2
+      "display_order": 2,
+      "name_ar": "العلاج الفيزيائي"
     },
     {
       "id": 19,
       "faculty_id": 6,
       "name": "Medical Laboratory Sciences",
       "slug": "medical-laboratory-sciences",
-      "display_order": 3
+      "display_order": 3,
+      "name_ar": "العلوم المخبرية الطبية"
     },
     {
       "id": 20,
       "faculty_id": 6,
       "name": "Clinical Dietetics & Nutrition",
       "slug": "clinical-dietetics-and-nutrition",
-      "display_order": 4
+      "display_order": 4,
+      "name_ar": "التغذية وتنظيم الوجبات"
     },
     {
       "id": 21,
       "faculty_id": 6,
       "name": "Medical Radiography",
       "slug": "medical-radiography",
-      "display_order": 5
+      "display_order": 5,
+      "name_ar": "الأشعة الطبية"
     },
     {
       "id": 22,
       "faculty_id": 6,
       "name": "Speech Therapy",
       "slug": "speech-therapy",
-      "display_order": 6
+      "display_order": 6,
+      "name_ar": "تقويم النطق"
     },
     {
       "id": 23,
       "faculty_id": 6,
       "name": "Occupational Therapy",
       "slug": "occupational-therapy",
-      "display_order": 7
+      "display_order": 7,
+      "name_ar": "العلاج الوظيفي"
     },
     {
       "id": 24,
       "faculty_id": 6,
       "name": "Social Health Work",
       "slug": "social-health-work",
-      "display_order": 8
+      "display_order": 8,
+      "name_ar": "العمل الصحي الاجتماعي"
     },
     {
       "id": 25,
       "faculty_id": 6,
       "name": "Optometry",
       "slug": "optometry",
-      "display_order": 9
+      "display_order": 9,
+      "name_ar": "قياس النظر وتجهيز النظارات"
     },
     {
       "id": 26,
       "faculty_id": 7,
       "name": "Agricultural Engineering",
       "slug": "agricultural-engineering",
-      "display_order": 1
+      "display_order": 1,
+      "name_ar": "الهندسة الزراعية"
     },
     {
       "id": 27,
       "faculty_id": 7,
       "name": "Veterinary Medicine",
       "slug": "veterinary-medicine",
-      "display_order": 2
+      "display_order": 2,
+      "name_ar": "الطب البيطري"
     },
     {
       "id": 28,
       "faculty_id": 8,
       "name": "Industrial Maintenance Engineering",
       "slug": "industrial-maintenance-engineering",
-      "display_order": 1
+      "display_order": 1,
+      "name_ar": "هندسة الصيانة الصناعية"
     },
     {
       "id": 29,
       "faculty_id": 8,
       "name": "Civil Engineering Technology",
       "slug": "civil-engineering-technology",
-      "display_order": 2
+      "display_order": 2,
+      "name_ar": "تكنولوجيا الهندسة المدنية"
     },
     {
       "id": 30,
       "faculty_id": 8,
       "name": "Software Engineering & Telecommunication Networks",
       "slug": "software-engineering-and-telecommunication-networks",
-      "display_order": 3
+      "display_order": 3,
+      "name_ar": "هندسة البرمجيات والشبكات"
     },
     {
       "id": 31,
       "faculty_id": 8,
       "name": "Administrative & Financial Technology",
       "slug": "administrative-and-financial-technology",
-      "display_order": 4
+      "display_order": 4,
+      "name_ar": "تكنولوجيا الإدارة والأعمال"
     },
     {
       "id": 32,
       "faculty_id": 9,
       "name": "Accounting & Auditing",
       "slug": "accounting-and-auditing",
-      "display_order": 1
+      "display_order": 1,
+      "name_ar": "المحاسبة والتدقيق"
     },
     {
       "id": 33,
       "faculty_id": 9,
       "name": "Finance & Banking",
       "slug": "finance-and-banking",
-      "display_order": 2
+      "display_order": 2,
+      "name_ar": "المصارف والتمويل"
     },
     {
       "id": 34,
       "faculty_id": 9,
       "name": "Management",
       "slug": "management",
-      "display_order": 3
+      "display_order": 3,
+      "name_ar": "الإدارة"
     },
     {
       "id": 35,
       "faculty_id": 9,
       "name": "Marketing",
       "slug": "marketing",
-      "display_order": 4
+      "display_order": 4,
+      "name_ar": "التسويق"
     },
     {
       "id": 36,
       "faculty_id": 9,
       "name": "Economics",
       "slug": "economics",
-      "display_order": 5
+      "display_order": 5,
+      "name_ar": "العلوم الاقتصادية"
     },
     {
       "id": 37,
       "faculty_id": 9,
       "name": "Management Information Systems - MIS",
       "slug": "management-information-systems-mis",
-      "display_order": 6
+      "display_order": 6,
+      "name_ar": "إدارة نظم المعلومات"
     },
     {
       "id": 38,
       "faculty_id": 10,
       "name": "Private Law",
       "slug": "private-law",
-      "display_order": 1
+      "display_order": 1,
+      "name_ar": "القانون الخاص"
     },
     {
       "id": 39,
       "faculty_id": 10,
       "name": "Public Law",
       "slug": "public-law",
-      "display_order": 2
+      "display_order": 2,
+      "name_ar": "القانون العام"
     },
     {
       "id": 40,
       "faculty_id": 10,
       "name": "Political Science",
       "slug": "political-science",
-      "display_order": 3
+      "display_order": 3,
+      "name_ar": "العلوم السياسية"
     },
     {
       "id": 41,
       "faculty_id": 10,
       "name": "Public Administration",
       "slug": "public-administration",
-      "display_order": 4
+      "display_order": 4,
+      "name_ar": "الإدارة العامة"
     },
     {
       "id": 42,
       "faculty_id": 10,
       "name": "International Relations",
       "slug": "international-relations",
-      "display_order": 5
+      "display_order": 5,
+      "name_ar": "العلاقات الدولية"
     },
     {
       "id": 43,
       "faculty_id": 11,
       "name": "Journalism",
       "slug": "journalism",
-      "display_order": 1
+      "display_order": 1,
+      "name_ar": "الصحافة"
     },
     {
       "id": 44,
       "faculty_id": 11,
       "name": "Public Relations & Advertising",
       "slug": "public-relations-and-advertising",
-      "display_order": 2
+      "display_order": 2,
+      "name_ar": "العلاقات العامة والإعلان"
     },
     {
       "id": 45,
       "faculty_id": 11,
       "name": "Data & Information Management",
       "slug": "data-and-information-management",
-      "display_order": 3
+      "display_order": 3,
+      "name_ar": "إدارة المعلومات"
     },
     {
       "id": 46,
       "faculty_id": 11,
       "name": "Digital Media & Communication",
       "slug": "digital-media-and-communication",
-      "display_order": 4
+      "display_order": 4,
+      "name_ar": "الإعلام الرقمي"
     },
     {
       "id": 47,
       "faculty_id": 12,
       "name": "Tourism Management",
       "slug": "tourism-management",
-      "display_order": 1
+      "display_order": 1,
+      "name_ar": "إدارة السياحة"
     },
     {
       "id": 48,
       "faculty_id": 12,
       "name": "Hotel Management",
       "slug": "hotel-management",
-      "display_order": 2
+      "display_order": 2,
+      "name_ar": "إدارة الفنادق"
     },
     {
       "id": 49,
       "faculty_id": 12,
       "name": "Travel & Tour Guiding",
       "slug": "travel-and-tour-guiding",
-      "display_order": 3
+      "display_order": 3,
+      "name_ar": "الإرشاد السياحي والسفر"
     },
     {
       "id": 50,
       "faculty_id": 13,
       "name": "Arabic Language & Literature",
       "slug": "arabic-language-and-literature",
-      "display_order": 1
+      "display_order": 1,
+      "name_ar": "اللغة العربية وآدابها"
     },
     {
       "id": 51,
       "faculty_id": 13,
       "name": "French Language & Literature",
       "slug": "french-language-and-literature",
-      "display_order": 2
+      "display_order": 2,
+      "name_ar": "اللغة الفرنسية وآدابها"
     },
     {
       "id": 52,
       "faculty_id": 13,
       "name": "English Language & Literature",
       "slug": "english-language-and-literature",
-      "display_order": 3
+      "display_order": 3,
+      "name_ar": "اللغة الإنكليزية وآدابها"
     },
     {
       "id": 53,
       "faculty_id": 13,
       "name": "History",
       "slug": "history",
-      "display_order": 4
+      "display_order": 4,
+      "name_ar": "التاريخ"
     },
     {
       "id": 54,
       "faculty_id": 13,
       "name": "Geography",
       "slug": "geography",
-      "display_order": 5
+      "display_order": 5,
+      "name_ar": "الجغرافيا"
     },
     {
       "id": 55,
       "faculty_id": 13,
       "name": "Philosophy",
       "slug": "philosophy",
-      "display_order": 6
+      "display_order": 6,
+      "name_ar": "الفلسفة"
     },
     {
       "id": 56,
       "faculty_id": 13,
       "name": "Psychology",
       "slug": "psychology",
-      "display_order": 7
+      "display_order": 7,
+      "name_ar": "علم النفس"
     },
     {
       "id": 57,
       "faculty_id": 13,
       "name": "Archaeology",
       "slug": "archaeology",
-      "display_order": 8
+      "display_order": 8,
+      "name_ar": "علم الآثار"
     },
     {
       "id": 58,
       "faculty_id": 13,
       "name": "Arts & Translation",
       "slug": "arts-and-translation",
-      "display_order": 9
+      "display_order": 9,
+      "name_ar": "الترجمة واللغات"
     },
     {
       "id": 59,
       "faculty_id": 14,
       "name": "Architecture",
       "slug": "architecture",
-      "display_order": 1
+      "display_order": 1,
+      "name_ar": "الهندسة المعمارية"
     },
     {
       "id": 60,
       "faculty_id": 14,
       "name": "Interior Design",
       "slug": "interior-design",
-      "display_order": 2
+      "display_order": 2,
+      "name_ar": "الهندسة الداخلية"
     },
     {
       "id": 61,
       "faculty_id": 14,
       "name": "Fine Arts / Painting & Sculpture",
       "slug": "fine-arts-painting-and-sculpture",
-      "display_order": 3
+      "display_order": 3,
+      "name_ar": "الفنون التشكيلية"
     },
     {
       "id": 62,
       "faculty_id": 14,
       "name": "Graphic Design & Visual Communication",
       "slug": "graphic-design-and-visual-communication",
-      "display_order": 4
+      "display_order": 4,
+      "name_ar": "الإعلان والتصميم الجرافيكي"
     },
     {
       "id": 63,
       "faculty_id": 14,
       "name": "Theater, Cinema & Television Studies",
       "slug": "theater-cinema-and-television-studies",
-      "display_order": 5
+      "display_order": 5,
+      "name_ar": "السينما والتلفزيون والمسرح"
     },
     {
       "id": 64,
       "faculty_id": 15,
       "name": "General Sociology",
       "slug": "general-sociology",
-      "display_order": 1
+      "display_order": 1,
+      "name_ar": "علم الاجتماع العام"
     },
     {
       "id": 65,
       "faculty_id": 15,
       "name": "Social Work & Development",
       "slug": "social-work-and-development",
-      "display_order": 2
+      "display_order": 2,
+      "name_ar": "الخدمة الاجتماعية والتنمية"
     },
     {
       "id": 66,
       "faculty_id": 15,
       "name": "Demography",
       "slug": "demography",
-      "display_order": 3
+      "display_order": 3,
+      "name_ar": "علم السكان"
     },
     {
       "id": 67,
       "faculty_id": 16,
       "name": "Early Childhood & Preschool Education",
       "slug": "early-childhood-and-preschool-education",
-      "display_order": 1
+      "display_order": 1,
+      "name_ar": "التربية المبكرة والرياض"
     },
     {
       "id": 68,
       "faculty_id": 16,
       "name": "Elementary Education - Mathematics & Science",
       "slug": "elementary-education-mathematics-and-science",
-      "display_order": 2
+      "display_order": 2,
+      "name_ar": "تعليم الرياضيات والعلوم"
     },
     {
       "id": 69,
       "faculty_id": 16,
       "name": "Elementary Education - Languages",
       "slug": "elementary-education-languages",
-      "display_order": 3
+      "display_order": 3,
+      "name_ar": "تعليم اللغات"
     },
     {
       "id": 70,
       "faculty_id": 16,
       "name": "Physical & Sports Education",
       "slug": "physical-and-sports-education",
-      "display_order": 4
+      "display_order": 4,
+      "name_ar": "التربية البدنية والرياضية"
     },
     {
       "id": 71,
       "faculty_id": 16,
       "name": "Art & Music Education",
       "slug": "art-and-music-education",
-      "display_order": 5
+      "display_order": 5,
+      "name_ar": "التربية الفنية والموسيقية"
     }
   ],
   "branch_specialisations": [

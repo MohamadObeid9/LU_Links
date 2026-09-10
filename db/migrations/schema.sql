@@ -119,6 +119,7 @@ ALTER TABLE public.branch_specialisations ALTER COLUMN id ADD GENERATED ALWAYS A
 CREATE TABLE public.branches (
     id integer NOT NULL,
     name text NOT NULL,
+    name_ar text DEFAULT ''::text NOT NULL,
     slug text NOT NULL,
     display_order integer DEFAULT 0 NOT NULL
 );
@@ -286,6 +287,7 @@ ALTER TABLE public.extra_sections ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTI
 CREATE TABLE public.faculties (
     id integer NOT NULL,
     name text NOT NULL,
+    name_ar text DEFAULT ''::text NOT NULL,
     slug text NOT NULL,
     display_order integer DEFAULT 0 NOT NULL
 );
@@ -563,6 +565,7 @@ CREATE TABLE public.specialisations (
     id integer NOT NULL,
     faculty_id integer NOT NULL,
     name text NOT NULL,
+    name_ar text DEFAULT ''::text NOT NULL,
     slug text NOT NULL,
     display_order integer DEFAULT 0 NOT NULL
 );

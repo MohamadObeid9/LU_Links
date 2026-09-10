@@ -76,13 +76,13 @@ func apply(ctx context.Context, db *sql.DB, b backup) error {
 		return fmt.Errorf("truncate content: %w", err)
 	}
 
-	if err := insertNamed(ctx, tx, `INSERT INTO faculties (id, name, slug, display_order) OVERRIDING SYSTEM VALUE VALUES ($1,$2,$3,$4)`, b.Faculties, func(f models.Faculty) []any {
-		return []any{f.ID, f.Name, f.Slug, f.DisplayOrder}
+	if err := insertNamed(ctx, tx, `INSERT INTO faculties (id, name, name_ar, slug, display_order) OVERRIDING SYSTEM VALUE VALUES ($1,$2,$3,$4,$5)`, b.Faculties, func(f models.Faculty) []any {
+		return []any{f.ID, f.Name, f.NameAr, f.Slug, f.DisplayOrder}
 	}); err != nil {
 		return err
 	}
-	if err := insertNamed(ctx, tx, `INSERT INTO branches (id, name, slug, display_order) OVERRIDING SYSTEM VALUE VALUES ($1,$2,$3,$4)`, b.Branches, func(br models.Branch) []any {
-		return []any{br.ID, br.Name, br.Slug, br.DisplayOrder}
+	if err := insertNamed(ctx, tx, `INSERT INTO branches (id, name, name_ar, slug, display_order) OVERRIDING SYSTEM VALUE VALUES ($1,$2,$3,$4,$5)`, b.Branches, func(br models.Branch) []any {
+		return []any{br.ID, br.Name, br.NameAr, br.Slug, br.DisplayOrder}
 	}); err != nil {
 		return err
 	}
@@ -92,8 +92,8 @@ func apply(ctx context.Context, db *sql.DB, b backup) error {
 		}
 	}
 	for _, sp := range b.Specialisations {
-		if _, err := tx.ExecContext(ctx, `INSERT INTO specialisations (id, faculty_id, name, slug, display_order) OVERRIDING SYSTEM VALUE VALUES ($1,$2,$3,$4,$5)`,
-			sp.ID, sp.FacultyID, sp.Name, sp.Slug, sp.DisplayOrder); err != nil {
+		if _, err := tx.ExecContext(ctx, `INSERT INTO specialisations (id, faculty_id, name, name_ar, slug, display_order) OVERRIDING SYSTEM VALUE VALUES ($1,$2,$3,$4,$5,$6)`,
+			sp.ID, sp.FacultyID, sp.Name, sp.NameAr, sp.Slug, sp.DisplayOrder); err != nil {
 			return fmt.Errorf("specialisations: %w", err)
 		}
 	}

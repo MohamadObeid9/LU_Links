@@ -20,7 +20,8 @@ db/
     ├── 000008_add_search_and_browse_events.up.sql
     ├── 000009_canonical_courses_and_placements.up.sql
     ├── 000010_lu_hierarchy.up.sql
-    └── 000011_suggestions.up.sql
+    ├── 000011_suggestions.up.sql
+    └── 000012_hierarchy_name_ar.up.sql
 ```
 
 - **`schema.sql`** — human-readable export for review and diffs; not meant to be executed directly.
@@ -29,10 +30,11 @@ db/
 **Current content model** (from `000010` + `000011`):
 
 - Faculties → Branches (campuses) → Specialisations → **Branch×Specialisation offerings** → Years → Semesters → Courses → Links
+- Hierarchy labels (`faculties`, `branches`, `specialisations`) may include optional `name_ar`; empty falls back to English `name` in the UI
 - Links carry a `languages` JSON array (`ar` / `fr` / `en`)
 - `suggestions` table for student improvement ideas (status `new` / `read` / `rejected`)
 
-Older migrations still mention `programs` / `course_placements`; those shapes are replaced by `000010`.
+Older migrations still mention `programs` / `course_placements`; those shapes are replaced by `000010`. `name_ar` columns are added in `000012`.
 
 ## Prerequisites
 

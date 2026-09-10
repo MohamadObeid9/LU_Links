@@ -93,9 +93,15 @@ function _buildTree(payload) {
       const br = branchById.get(o.branch_id);
       const fac = faculties.find((f) => f.id === sp?.faculty_id);
       if (!sp || !br || !fac) return null;
+      const nameEn = `${sp.name} · ${br.name}`;
+      const spAr = String(sp.name_ar || "").trim();
+      const brAr = String(br.name_ar || "").trim();
+      const nameAr =
+        spAr || brAr ? `${spAr || sp.name} · ${brAr || br.name}` : "";
       return {
         id: o.id,
-        name: `${sp.name} · ${br.name}`,
+        name: nameEn,
+        name_ar: nameAr,
         slug: `${fac.slug}-${br.slug}-${sp.slug}`,
         faculty_id: fac.id,
         branch_id: br.id,

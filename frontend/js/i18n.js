@@ -876,6 +876,16 @@ function getLang() {
   return currentLang;
 }
 
+/** Prefer Arabic `name_ar` when UI lang is Arabic; otherwise English `name`. */
+function localizedName(entity) {
+  if (!entity) return "";
+  if (currentLang === "ar") {
+    const ar = String(entity.name_ar || "").trim();
+    if (ar) return ar;
+  }
+  return String(entity.name || "");
+}
+
 function setLangState(lang) {
   currentLang = normalizeLang(lang);
 }
@@ -934,12 +944,14 @@ function applyStaticI18n() {
 
 window.t = t;
 window.getLang = getLang;
+window.localizedName = localizedName;
 window.applyStaticI18n = applyStaticI18n;
 
 export {
   STRINGS,
   t,
   getLang,
+  localizedName,
   setLangState,
   applyDocumentLang,
   applyStaticI18n,

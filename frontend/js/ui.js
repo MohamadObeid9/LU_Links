@@ -1,7 +1,7 @@
 
 // ===================== HELPERS =====================
 import { AppState, toggleFavorite } from "./state.js";
-import { t } from "./i18n.js";
+import { t, localizedName } from "./i18n.js";
 
 function esc(str) {
   if (!str) return "";
@@ -156,7 +156,7 @@ function collectFavoriteCourses(query = "") {
           ) {
             return;
           }
-          const path = `${prog.name} · ${year.name} · ${sem.name}`;
+          const path = `${localizedName(prog)} · ${year.name} · ${sem.name}`;
           const existing = byId.get(c.id);
           if (existing) {
             if (!existing.paths.includes(path)) existing.paths.push(path);

@@ -3,7 +3,7 @@
 import { AppState } from "./state.js";
 import { esc, _buildCourseCard, getLinkBadge, getContentTypeChips, _linkHref, isMobileView, collectFavoriteCourses, setSectionHint, tipsSectionHtml, FAVORITES_HINT, FAVORITES_HINT_CARD, homeSectionHeading, sectionInlineHintHtml } from "./ui.js";
 import { renderMobileHome, selectMobileProg } from "./mobile-home.js";
-import { t } from "./i18n.js";
+import { t, localizedName } from "./i18n.js";
 
 function renderProgTabs() {
   const onFaculties =
@@ -21,11 +21,19 @@ function renderProgTabs() {
     `<button class="prog-tab fav-tab ${AppState.currentProg === "favorites" ? "active" : ""}" onclick="selectProg('favorites')">${esc(t("tab_favorites"))}</button>`;
 }
 
-function shortFacultyLabel(name) {
-  return String(name || "")
-    .replace(/^Faculty of\s+/i, "")
-    .replace(/^Institute of\s+/i, "")
-    .trim() || name;
+function shortFacultyLabel(entityOrName) {
+  const name =
+    entityOrName && typeof entityOrName === "object"
+      ? localizedName(entityOrName)
+      : String(entityOrName || "");
+  return (
+    name
+      .replace(/^Faculty of\s+/i, "")
+      .replace(/^Institute of\s+/i, "")
+      .replace(/^كلية\s+/, "")
+      .replace(/^معهد\s+/, "")
+      .trim() || name
+  );
 }
 
 function countLabel(n, oneKey, manyKey) {
@@ -69,7 +77,7 @@ function syncProgramSectionHeading() {
   const back = ctx
     ? `<button type="button" class="nav-back" onclick="backToSpecialisations()">${esc(t("back_specialisations"))}</button>`
     : "";
-  el.innerHTML = `${back}${homeSectionHeading(esc(prog.name))}`;
+  el.innerHTML = `${back}${homeSectionHeading(esc(localizedName(prog)))}`;
   el.hidden = false;
 }
 
@@ -95,7 +103,7 @@ function renderFacultyBrowser() {
     const cards = (AppState.dbFaculties || [])
       .map((f) =>
         pickCardHtml({
-          title: shortFacultyLabel(f.name),
+          title: shortFacultyLabel(f),
           meta: countLabel((f.branches || []).length, "campus_one", "campus_many"),
           onclick: `selectFaculty(${f.id})`,
         }),
@@ -125,7 +133,7 @@ function renderFacultyBrowser() {
     const cards = (fac.branches || [])
       .map((b) =>
         pickCardHtml({
-          title: b.name,
+          title: localizedName(b),
           meta: countLabel((b.specialisations || []).length, "spec_one", "spec_many"),
           onclick: `selectFacultyBranch(${fac.id}, ${b.id})`,
         }),
@@ -134,7 +142,7 @@ function renderFacultyBrowser() {
     document.getElementById("coursesOutput").innerHTML = `
       <div class="home-section">
         <button type="button" class="nav-back" onclick="selectProg('faculties')">${esc(t("back_all_faculties"))}</button>
-        ${homeSectionHeading(esc(shortFacultyLabel(fac.name)))}
+        ${homeSectionHeading(esc(shortFacultyLabel(fac)))}
         <p class="view-subtitle">${esc(t("campus_sub"))}</p>
         <div class="pick-grid">${cards || `<div class="empty">${esc(t("campuses_empty"))}</div>`}</div>
       </div>`;
@@ -152,7 +160,7 @@ function renderFacultyBrowser() {
     .map((sp) => {
       const yearCount = (sp.years || []).length;
       return pickCardHtml({
-        title: sp.name,
+        title: localizedName(sp),
         meta: yearCount
           ? countLabel(yearCount, "year_courses_one", "year_courses_many")
           : t("courses_coming"),
@@ -162,8 +170,8 @@ function renderFacultyBrowser() {
     .join("");
   document.getElementById("coursesOutput").innerHTML = `
     <div class="home-section">
-      <button type="button" class="nav-back" onclick="selectFaculty(${fac.id})">${esc(t("back_campuses", { name: shortFacultyLabel(fac.name) }))}</button>
-      ${homeSectionHeading(esc(branch.name))}
+      <button type="button" class="nav-back" onclick="selectFaculty(${fac.id})">${esc(t("back_campuses", { name: shortFacultyLabel(fac) }))}</button>
+      ${homeSectionHeading(esc(localizedName(branch)))}
       <p class="view-subtitle">${esc(t("spec_sub"))}</p>
       <div class="pick-grid">${cards || `<div class="empty">${esc(t("specs_empty"))}</div>`}</div>
     </div>`;
