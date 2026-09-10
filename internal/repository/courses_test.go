@@ -14,7 +14,7 @@ func TestCourseRepository_Create(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 	repo := NewPostgresCourseRepository(db)
 	mock.ExpectExec(insertCourseQuery).
 		WithArgs("Algo", "CS1", false, 3, 0).
@@ -32,7 +32,7 @@ func TestCourseRepository_Delete(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 	repo := NewPostgresCourseRepository(db)
 	mock.ExpectExec(deleteCourseQuery).WithArgs(9).WillReturnResult(sqlmock.NewResult(0, 1))
 	if err := repo.Delete(context.Background(), 9); err != nil {
