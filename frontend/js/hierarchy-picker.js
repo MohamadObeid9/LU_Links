@@ -1,6 +1,6 @@
 import { AppState } from "./state.js";
 import { esc } from "./ui.js";
-import { t } from "./i18n.js";
+import { t, localizedName } from "./i18n.js";
 
 const STEP_ORDER = ["faculty", "campus", "spec", "year", "sem", "course"];
 
@@ -17,11 +17,19 @@ function placeholderKey(level) {
   return PLACEHOLDERS[level] || "select_ellipsis";
 }
 
-function shortFacultyLabel(name) {
-  return String(name || "")
-    .replace(/^Faculty of\s+/i, "")
-    .replace(/^Institute of\s+/i, "")
-    .trim() || name;
+function shortFacultyLabel(entityOrName) {
+  const name =
+    entityOrName && typeof entityOrName === "object"
+      ? localizedName(entityOrName)
+      : String(entityOrName || "");
+  return (
+    name
+      .replace(/^Faculty of\s+/i, "")
+      .replace(/^Institute of\s+/i, "")
+      .replace(/^كلية\s+/, "")
+      .replace(/^معهد\s+/, "")
+      .trim() || name
+  );
 }
 
 function faculties() {
@@ -134,7 +142,7 @@ function hierarchyCascade(prefix, changed) {
     if (facEl) {
       fillSelect(
         facEl,
-        faculties().map((f) => [f.id, shortFacultyLabel(f.name)]),
+        faculties().map((f) => [f.id, shortFacultyLabel(f)]),
         { placeholderKey: "ph_select_faculty", disabled: false },
       );
     }
@@ -154,7 +162,7 @@ function hierarchyCascade(prefix, changed) {
       return;
     }
     const fac = facultyById(facId);
-    const campuses = (fac?.branches || []).map((b) => [b.id, b.name]);
+    const campuses = (fac?.branches || []).map((b) => [b.id, localizedName(b)]);
     showStep(prefix, "campus", campuses, PLACEHOLDERS.campus);
     notifyCourseChange(prefix);
     return;
@@ -172,7 +180,10 @@ function hierarchyCascade(prefix, changed) {
     showStep(
       prefix,
       "spec",
-      offs.map((p) => [p.id, p.name.split(" · ")[0] || p.name]),
+      offs.map((p) => {
+        const full = localizedName(p);
+        return [p.id, full.split(" · ")[0] || full];
+      }),
       PLACEHOLDERS.spec,
     );
     notifyCourseChange(prefix);

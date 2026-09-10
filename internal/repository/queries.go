@@ -423,14 +423,14 @@ const (
 
 // Hierarchy Queries
 const (
-	listFacultiesQuery  = `SELECT id, name, slug, display_order FROM faculties ORDER BY display_order ASC, id ASC`
-	insertFacultyQuery  = `INSERT INTO faculties (name, slug, display_order) VALUES ($1, $2, $3)`
-	updateFacultyQuery  = `UPDATE faculties SET name = $1, slug = $2, display_order = $3 WHERE id = $4`
+	listFacultiesQuery  = `SELECT id, name, name_ar, slug, display_order FROM faculties ORDER BY display_order ASC, id ASC`
+	insertFacultyQuery  = `INSERT INTO faculties (name, name_ar, slug, display_order) VALUES ($1, $2, $3, $4)`
+	updateFacultyQuery  = `UPDATE faculties SET name = $1, name_ar = $2, slug = $3, display_order = $4 WHERE id = $5`
 	deleteFacultyQuery  = `DELETE FROM faculties WHERE id = $1`
 
-	listBranchesQuery = `SELECT id, name, slug, display_order FROM branches ORDER BY display_order ASC, id ASC`
-	insertBranchQuery = `INSERT INTO branches (name, slug, display_order) VALUES ($1, $2, $3)`
-	updateBranchQuery = `UPDATE branches SET name = $1, slug = $2, display_order = $3 WHERE id = $4`
+	listBranchesQuery = `SELECT id, name, name_ar, slug, display_order FROM branches ORDER BY display_order ASC, id ASC`
+	insertBranchQuery = `INSERT INTO branches (name, name_ar, slug, display_order) VALUES ($1, $2, $3, $4)`
+	updateBranchQuery = `UPDATE branches SET name = $1, name_ar = $2, slug = $3, display_order = $4 WHERE id = $5`
 	deleteBranchQuery = `DELETE FROM branches WHERE id = $1`
 
 	listFacultyBranchesQuery  = `SELECT faculty_id, branch_id FROM faculty_branches`
@@ -438,9 +438,9 @@ const (
 	deleteFacultyBranchQuery  = `DELETE FROM faculty_branches WHERE faculty_id = $1 AND branch_id = $2`
 	facultyBranchExistsQuery  = `SELECT EXISTS(SELECT 1 FROM faculty_branches WHERE faculty_id = $1 AND branch_id = $2)`
 
-	listSpecialisationsQuery = `SELECT id, faculty_id, name, slug, display_order FROM specialisations ORDER BY display_order ASC, id ASC`
-	insertSpecialisationQuery = `INSERT INTO specialisations (faculty_id, name, slug, display_order) VALUES ($1, $2, $3, $4)`
-	updateSpecialisationQuery = `UPDATE specialisations SET faculty_id = $1, name = $2, slug = $3, display_order = $4 WHERE id = $5`
+	listSpecialisationsQuery = `SELECT id, faculty_id, name, name_ar, slug, display_order FROM specialisations ORDER BY display_order ASC, id ASC`
+	insertSpecialisationQuery = `INSERT INTO specialisations (faculty_id, name, name_ar, slug, display_order) VALUES ($1, $2, $3, $4, $5)`
+	updateSpecialisationQuery = `UPDATE specialisations SET faculty_id = $1, name = $2, name_ar = $3, slug = $4, display_order = $5 WHERE id = $6`
 	deleteSpecialisationQuery = `DELETE FROM specialisations WHERE id = $1`
 	getSpecialisationFacultyQuery = `SELECT faculty_id FROM specialisations WHERE id = $1`
 
@@ -585,10 +585,10 @@ const (
 
 // Contents Queries — explicit json_build_object projections (no SELECT * row dumps).
 const (
-	facultyJSON       = `json_build_object('id', f.id, 'name', f.name, 'slug', f.slug, 'display_order', f.display_order)`
-	branchJSON        = `json_build_object('id', b.id, 'name', b.name, 'slug', b.slug, 'display_order', b.display_order)`
+	facultyJSON       = `json_build_object('id', f.id, 'name', f.name, 'name_ar', f.name_ar, 'slug', f.slug, 'display_order', f.display_order)`
+	branchJSON        = `json_build_object('id', b.id, 'name', b.name, 'name_ar', b.name_ar, 'slug', b.slug, 'display_order', b.display_order)`
 	facultyBranchJSON = `json_build_object('faculty_id', fb.faculty_id, 'branch_id', fb.branch_id)`
-	specJSON          = `json_build_object('id', sp.id, 'faculty_id', sp.faculty_id, 'name', sp.name, 'slug', sp.slug, 'display_order', sp.display_order)`
+	specJSON          = `json_build_object('id', sp.id, 'faculty_id', sp.faculty_id, 'name', sp.name, 'name_ar', sp.name_ar, 'slug', sp.slug, 'display_order', sp.display_order)`
 	offeringJSON      = `json_build_object('id', bs.id, 'branch_id', bs.branch_id, 'specialisation_id', bs.specialisation_id, 'display_order', bs.display_order)`
 	yearJSON          = `json_build_object('id', y.id, 'branch_specialisation_id', y.branch_specialisation_id, 'name', y.name, 'display_order', y.display_order)`
 	semesterJSON      = `json_build_object('id', s.id, 'year_id', s.year_id, 'name', s.name, 'display_order', s.display_order)`

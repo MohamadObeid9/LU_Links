@@ -26,7 +26,7 @@ func (r *postgresHierarchyRepository) ListFaculties(ctx context.Context) ([]mode
 	var out []models.Faculty
 	for rows.Next() {
 		var f models.Faculty
-		if err := rows.Scan(&f.ID, &f.Name, &f.Slug, &f.DisplayOrder); err != nil {
+		if err := rows.Scan(&f.ID, &f.Name, &f.NameAr, &f.Slug, &f.DisplayOrder); err != nil {
 			return nil, fmt.Errorf("scan faculty: %w", err)
 		}
 		out = append(out, f)
@@ -35,14 +35,14 @@ func (r *postgresHierarchyRepository) ListFaculties(ctx context.Context) ([]mode
 }
 
 func (r *postgresHierarchyRepository) CreateFaculty(ctx context.Context, f models.Faculty) error {
-	if _, err := r.db.ExecContext(ctx, insertFacultyQuery, f.Name, f.Slug, f.DisplayOrder); err != nil {
+	if _, err := r.db.ExecContext(ctx, insertFacultyQuery, f.Name, f.NameAr, f.Slug, f.DisplayOrder); err != nil {
 		return fmt.Errorf("insert faculty: %w", err)
 	}
 	return nil
 }
 
 func (r *postgresHierarchyRepository) UpdateFaculty(ctx context.Context, f models.Faculty, id int) error {
-	resp, err := r.db.ExecContext(ctx, updateFacultyQuery, f.Name, f.Slug, f.DisplayOrder, id)
+	resp, err := r.db.ExecContext(ctx, updateFacultyQuery, f.Name, f.NameAr, f.Slug, f.DisplayOrder, id)
 	if err != nil {
 		return fmt.Errorf("update faculty: %w", err)
 	}
@@ -80,7 +80,7 @@ func (r *postgresHierarchyRepository) ListBranches(ctx context.Context) ([]model
 	var out []models.Branch
 	for rows.Next() {
 		var b models.Branch
-		if err := rows.Scan(&b.ID, &b.Name, &b.Slug, &b.DisplayOrder); err != nil {
+		if err := rows.Scan(&b.ID, &b.Name, &b.NameAr, &b.Slug, &b.DisplayOrder); err != nil {
 			return nil, fmt.Errorf("scan branch: %w", err)
 		}
 		out = append(out, b)
@@ -89,14 +89,14 @@ func (r *postgresHierarchyRepository) ListBranches(ctx context.Context) ([]model
 }
 
 func (r *postgresHierarchyRepository) CreateBranch(ctx context.Context, b models.Branch) error {
-	if _, err := r.db.ExecContext(ctx, insertBranchQuery, b.Name, b.Slug, b.DisplayOrder); err != nil {
+	if _, err := r.db.ExecContext(ctx, insertBranchQuery, b.Name, b.NameAr, b.Slug, b.DisplayOrder); err != nil {
 		return fmt.Errorf("insert branch: %w", err)
 	}
 	return nil
 }
 
 func (r *postgresHierarchyRepository) UpdateBranch(ctx context.Context, b models.Branch, id int) error {
-	resp, err := r.db.ExecContext(ctx, updateBranchQuery, b.Name, b.Slug, b.DisplayOrder, id)
+	resp, err := r.db.ExecContext(ctx, updateBranchQuery, b.Name, b.NameAr, b.Slug, b.DisplayOrder, id)
 	if err != nil {
 		return fmt.Errorf("update branch: %w", err)
 	}
@@ -181,7 +181,7 @@ func (r *postgresHierarchyRepository) ListSpecialisations(ctx context.Context) (
 	var out []models.Specialisation
 	for rows.Next() {
 		var s models.Specialisation
-		if err := rows.Scan(&s.ID, &s.FacultyID, &s.Name, &s.Slug, &s.DisplayOrder); err != nil {
+		if err := rows.Scan(&s.ID, &s.FacultyID, &s.Name, &s.NameAr, &s.Slug, &s.DisplayOrder); err != nil {
 			return nil, fmt.Errorf("scan specialisation: %w", err)
 		}
 		out = append(out, s)
@@ -190,14 +190,14 @@ func (r *postgresHierarchyRepository) ListSpecialisations(ctx context.Context) (
 }
 
 func (r *postgresHierarchyRepository) CreateSpecialisation(ctx context.Context, s models.Specialisation) error {
-	if _, err := r.db.ExecContext(ctx, insertSpecialisationQuery, s.FacultyID, s.Name, s.Slug, s.DisplayOrder); err != nil {
+	if _, err := r.db.ExecContext(ctx, insertSpecialisationQuery, s.FacultyID, s.Name, s.NameAr, s.Slug, s.DisplayOrder); err != nil {
 		return fmt.Errorf("insert specialisation: %w", err)
 	}
 	return nil
 }
 
 func (r *postgresHierarchyRepository) UpdateSpecialisation(ctx context.Context, s models.Specialisation, id int) error {
-	resp, err := r.db.ExecContext(ctx, updateSpecialisationQuery, s.FacultyID, s.Name, s.Slug, s.DisplayOrder, id)
+	resp, err := r.db.ExecContext(ctx, updateSpecialisationQuery, s.FacultyID, s.Name, s.NameAr, s.Slug, s.DisplayOrder, id)
 	if err != nil {
 		return fmt.Errorf("update specialisation: %w", err)
 	}

@@ -51,6 +51,7 @@ func (s *HierarchyService) ListFaculties(ctx context.Context) ([]models.Faculty,
 
 func (s *HierarchyService) CreateFaculty(ctx context.Context, f models.Faculty) error {
 	f.Name = strings.TrimSpace(f.Name)
+	f.NameAr = strings.TrimSpace(f.NameAr)
 	f.Slug = slugify(f.Name, f.Slug)
 	if f.Name == "" || f.Slug == "" {
 		return errs.ErrFacultyNameRequired
@@ -64,6 +65,7 @@ func (s *HierarchyService) UpdateFaculty(ctx context.Context, f models.Faculty, 
 		return errs.ErrFacultyInvalidID
 	}
 	f.Name = strings.TrimSpace(f.Name)
+	f.NameAr = strings.TrimSpace(f.NameAr)
 	f.Slug = slugify(f.Name, f.Slug)
 	if f.Name == "" || f.Slug == "" {
 		return errs.ErrFacultyNameRequired
@@ -85,6 +87,7 @@ func (s *HierarchyService) ListBranches(ctx context.Context) ([]models.Branch, e
 
 func (s *HierarchyService) CreateBranch(ctx context.Context, b models.Branch) error {
 	b.Name = strings.TrimSpace(b.Name)
+	b.NameAr = strings.TrimSpace(b.NameAr)
 	b.Slug = slugify(b.Name, b.Slug)
 	if b.Name == "" || b.Slug == "" {
 		return errs.ErrBranchNameRequired
@@ -98,6 +101,7 @@ func (s *HierarchyService) UpdateBranch(ctx context.Context, b models.Branch, id
 		return errs.ErrBranchInvalidID
 	}
 	b.Name = strings.TrimSpace(b.Name)
+	b.NameAr = strings.TrimSpace(b.NameAr)
 	b.Slug = slugify(b.Name, b.Slug)
 	if b.Name == "" || b.Slug == "" {
 		return errs.ErrBranchNameRequired
@@ -147,6 +151,7 @@ func (s *HierarchyService) ListSpecialisations(ctx context.Context) ([]models.Sp
 
 func (s *HierarchyService) CreateSpecialisation(ctx context.Context, sp models.Specialisation) error {
 	sp.Name = strings.TrimSpace(sp.Name)
+	sp.NameAr = strings.TrimSpace(sp.NameAr)
 	sp.Slug = slugify(sp.Name, sp.Slug)
 	if sp.FacultyID <= 0 {
 		return errs.ErrSpecialisationFacultyRequired
@@ -163,6 +168,7 @@ func (s *HierarchyService) UpdateSpecialisation(ctx context.Context, sp models.S
 		return errs.ErrSpecialisationInvalidID
 	}
 	sp.Name = strings.TrimSpace(sp.Name)
+	sp.NameAr = strings.TrimSpace(sp.NameAr)
 	sp.Slug = slugify(sp.Name, sp.Slug)
 	if sp.FacultyID <= 0 {
 		return errs.ErrSpecialisationFacultyRequired

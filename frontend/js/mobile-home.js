@@ -12,7 +12,7 @@ import {
   homeSectionHeading,
   FAVORITES_HINT_CARD,
 } from "./ui.js";
-import { t } from "./i18n.js";
+import { t, localizedName } from "./i18n.js";
 
 const MOBILE_MQ = "(max-width: 768px)";
 
@@ -219,7 +219,7 @@ function renderMobileYearPicker() {
 
   document.getElementById("coursesOutput").innerHTML = `
     <button type="button" class="mobile-back" data-mobile-back="${backStep}">${esc(backLabel)}</button>
-    <div class="mobile-section-label">${esc(prog.name)}</div>
+    <div class="mobile-section-label">${esc(localizedName(prog))}</div>
     ${years}`;
 }
 
@@ -242,7 +242,7 @@ function renderMobileList() {
   document.getElementById("coursesOutput").innerHTML = `
     ${chipsHtml(
       [
-        { label: prog.name, crumb: canSpecs ? "specialisations" : "program" },
+        { label: localizedName(prog), crumb: canSpecs ? "specialisations" : "program" },
         { label: year.name, crumb: "year" },
         { label: sem.name, crumb: "year" },
       ],

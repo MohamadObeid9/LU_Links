@@ -201,6 +201,7 @@ func UserHandle(firstName, lastName string, number, id int) string {
 type Faculty struct {
 	ID           int    `json:"id"`
 	Name         string `json:"name"`
+	NameAr       string `json:"name_ar"`
 	Slug         string `json:"slug"`
 	DisplayOrder int    `json:"display_order"`
 }
@@ -209,6 +210,7 @@ type Faculty struct {
 type Branch struct {
 	ID           int    `json:"id"`
 	Name         string `json:"name"`
+	NameAr       string `json:"name_ar"`
 	Slug         string `json:"slug"`
 	DisplayOrder int    `json:"display_order"`
 }
@@ -224,6 +226,7 @@ type Specialisation struct {
 	ID           int    `json:"id"`
 	FacultyID    int    `json:"faculty_id"`
 	Name         string `json:"name"`
+	NameAr       string `json:"name_ar"`
 	Slug         string `json:"slug"`
 	DisplayOrder int    `json:"display_order"`
 }
