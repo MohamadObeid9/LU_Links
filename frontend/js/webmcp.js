@@ -99,7 +99,7 @@ function toolDefs() {
     {
       name: "search_courses",
       description:
-        "Search Info Links courses by name or code (e.g. NFA035, networks). Updates the on-page search and returns matching courses with program path.",
+        "Search LU Links courses by name or code (e.g. NFA035, networks). Updates the on-page search and returns matching courses with program path.",
       inputSchema: {
         type: "object",
         properties: {
@@ -138,7 +138,7 @@ function toolDefs() {
     {
       name: "list_programs",
       description:
-        "List academic programs available on Info Links (CNAM Lebanon), plus Extra resources and Favorites tabs.",
+        "List faculties and browse paths available on LU Links, plus Extra resources and Favorites.",
       inputSchema: { type: "object", properties: {} },
       annotations: { readOnlyHint: true },
       async execute() {
@@ -202,7 +202,7 @@ function toolDefs() {
     {
       name: "navigate",
       description:
-        "Navigate the Info Links SPA to a main view: home (course browser), about, or admin login screen.",
+        "Navigate the LU Links SPA to a main view: home (course browser), about, or admin login screen.",
       inputSchema: {
         type: "object",
         properties: {

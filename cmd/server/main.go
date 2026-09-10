@@ -12,14 +12,14 @@ import (
 	"syscall"
 	"time"
 
-	"infolinks-backend/internal/api"
-	"infolinks-backend/internal/app"
-	"infolinks-backend/internal/config"
-	"infolinks-backend/internal/database"
-	"infolinks-backend/internal/repository"
-	"infolinks-backend/internal/seo"
-	"infolinks-backend/internal/service"
-	"infolinks-backend/internal/webbotauth"
+	"lu-links/internal/api"
+	"lu-links/internal/app"
+	"lu-links/internal/config"
+	"lu-links/internal/database"
+	"lu-links/internal/repository"
+	"lu-links/internal/seo"
+	"lu-links/internal/service"
+	"lu-links/internal/webbotauth"
 )
 
 const shutdownTimeout = 10 * time.Second
@@ -40,7 +40,7 @@ func main() {
 	}
 	defer func() { _ = dbClient.Close() }()
 
-	services, _ := app.Wire(dbClient.DB)
+	services, userService := app.Wire(dbClient.DB)
 
 	webBotDir, err := webbotauth.NewDirectory(cfg.JWTSecret, cfg.SiteBaseURL)
 	if err != nil {
@@ -62,11 +62,13 @@ func main() {
 		ReportService:       services.ReportService,
 		ContentService:      services.ContentService,
 		FeedbackService:     services.FeedbackService,
+		SuggestionService:   services.SuggestionService,
 		PageViewService:     services.PageViewService,
 		LinkClickService:    services.LinkClickService,
 		ExtraLinkService:    services.ExtraLinkService,
 		ContributionService: services.ContributionService,
 		ExtraSectionService: services.ExtraSectionService,
+		HierarchyService:    services.HierarchyService,
 		Logger:              logger.With("component", "api"),
 	})
 	if err != nil {
@@ -90,6 +92,8 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
+	go purgeExpiredGuests(ctx, userService, logger.With("component", "guest-cleanup"))
+
 	server := newHTTPServer(":"+cfg.Port, handler)
 	logger.Info("backend is starting", "env", cfg.AppEnv, "port", cfg.Port)
 	if err := serveHTTP(ctx, server, nil); err != nil {
@@ -97,6 +101,41 @@ func main() {
 		os.Exit(1)
 	}
 	logger.Info("server stopped")
+}
+
+const (
+	guestRetentionDays   = 100
+	guestCleanupInterval = 24 * time.Hour
+	guestCleanupTimeout  = 30 * time.Second
+)
+
+// purgeExpiredGuests deletes guest rows older than guestRetentionDays on startup
+// and once a day afterward. Stops when ctx is cancelled.
+func purgeExpiredGuests(ctx context.Context, users *service.UserService, log *slog.Logger) {
+	run := func() {
+		runCtx, cancel := context.WithTimeout(context.Background(), guestCleanupTimeout)
+		defer cancel()
+		n, err := users.DeleteExpiredGuests(runCtx, guestRetentionDays)
+		if err != nil {
+			log.Error("expired guest cleanup failed", "error", err)
+			return
+		}
+		if n > 0 {
+			log.Info("deleted expired guests", "count", n, "max_age_days", guestRetentionDays)
+		}
+	}
+
+	run()
+	ticker := time.NewTicker(guestCleanupInterval)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			run()
+		}
+	}
 }
 
 func newHTTPServer(addr string, handler http.Handler) *http.Server {
@@ -139,7 +178,6 @@ func serveHTTP(ctx context.Context, server *http.Server, ln net.Listener) error 
 		return nil
 	}
 }
-
 
 func newLogger(appEnv, logLevel string) *slog.Logger {
 	var logHandler slog.Handler

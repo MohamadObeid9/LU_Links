@@ -2,7 +2,7 @@
 
 ## Context
 
-Info Links needs:
+LU Links needs:
 
 1. A **managed Postgres** instance reachable from Render without self-hosting a database server
 2. **Admin authentication** — password verification and role management without building user management from scratch

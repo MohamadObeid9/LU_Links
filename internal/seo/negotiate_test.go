@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"infolinks-backend/internal/repository"
+	"lu-links/internal/repository"
 )
 
 func TestAcceptPrefersMarkdown(t *testing.T) {
@@ -108,7 +108,7 @@ func TestServeSPAMarkdown(t *testing.T) {
 	if !strings.HasPrefix(rr.Header().Get("Content-Type"), "text/markdown") {
 		t.Fatalf("Content-Type: %q", rr.Header().Get("Content-Type"))
 	}
-	if !strings.Contains(rr.Body.String(), "# Info Links") {
+	if !strings.Contains(rr.Body.String(), "# LU Links") {
 		t.Fatalf("body: %s", rr.Body.String())
 	}
 }

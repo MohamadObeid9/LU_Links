@@ -1,6 +1,8 @@
 # Architecture Decision Records
 
-Short documents explaining **why** Info Links is built the way it is. Useful for onboarding, interviews, and future-you.
+Short documents explaining **why** LU Links is built the way it is. Useful for onboarding, interviews, and future-you.
+
+The product is **LU Links**. ADRs 001–010 capture earlier architecture choices; [ADR 011](011-lu-academic-hierarchy.md) is the current Lebanese University hierarchy (faculties → campuses → specialisations).
 
 | ADR | Title | Summary |
 |-----|-------|---------|
@@ -12,8 +14,9 @@ Short documents explaining **why** Info Links is built the way it is. Useful for
 | [006](006-server-side-seo-pages.md) | Server-side SEO pages | HTML for crawlers alongside the client-rendered SPA |
 | [007](007-versioned-schema-migrations.md) | Versioned schema migrations | `schema.sql` snapshot + golang-migrate files in `db/migrations/` |
 | [008](008-student-identity-without-passwords.md) | Student identity without passwords | Name + number identity, guest claim, student JWT separate from admin auth |
-| [009](009-canonical-courses-and-placements.md) | Canonical courses and placements | One course per code; programs are offerings; links are shared |
+| [009](009-canonical-courses-and-placements.md) | Canonical courses and placements | Historical shared-course model; superseded for LU by 011 |
 | [010](010-in-memory-content-cache.md) | In-memory `/api/content` cache | 60s TTL + `singleflight` at origin; k6 p95 1.53 ms |
+| [011](011-lu-academic-hierarchy.md) | LU academic hierarchy | Faculties → branches → specialisations; separate resources per offering |
 
 ## Format
 

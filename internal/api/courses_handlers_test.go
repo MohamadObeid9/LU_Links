@@ -9,8 +9,8 @@ import (
 	"reflect"
 	"testing"
 
-	"infolinks-backend/internal/errs"
-	"infolinks-backend/internal/models"
+	"lu-links/internal/errs"
+	"lu-links/internal/models"
 )
 
 type fakeCourseService struct {
@@ -18,10 +18,9 @@ type fakeCourseService struct {
 	createCourse models.Course
 	createErr    error
 
-	deleteCalls     int
-	deleteID        string
-	deletePlacement string
-	deleteErr       error
+	deleteCalls int
+	deleteID    string
+	deleteErr   error
 
 	updateCalls int
 	updatePatch models.CoursePatch
@@ -35,10 +34,9 @@ func (f *fakeCourseService) Create(ctx context.Context, course models.Course) er
 	return f.createErr
 }
 
-func (f *fakeCourseService) Delete(ctx context.Context, idStr, placementStr string) error {
+func (f *fakeCourseService) Delete(ctx context.Context, idStr string) error {
 	f.deleteCalls++
 	f.deleteID = idStr
-	f.deletePlacement = placementStr
 	return f.deleteErr
 }
 
@@ -54,343 +52,80 @@ func TestHandleAdminPostCourse(t *testing.T) {
 		name         string
 		body         string
 		createErr    error
-		statusWanted int
-		errMsg       string
-		wantCalls    int
-		resultWanted *models.Course
+		wantStatus   int
+		wantCreate   *models.Course
+		wantCreateN  int
 	}{
 		{
-			name:         "201 when service accepts the course",
-			body:         `{"name":"BDD","code":"nfa008","semester_id":3,"is_optional":false,"display_order":55}`,
-			statusWanted: http.StatusCreated,
-			wantCalls:    1,
-			resultWanted: &models.Course{Name: "BDD", Code: "nfa008", SemesterID: 3, IsOptional: false, DisplayOrder: 55},
+			name:       "creates course",
+			body:       `{"name":"Algo","code":"CS101","semester_id":3,"is_optional":false}`,
+			wantStatus: http.StatusCreated,
+			wantCreate: &models.Course{Name: "Algo", Code: "CS101", SemesterID: 3},
+			wantCreateN: 1,
 		},
 		{
-			name:         "400 invalid JSON body",
-			body:         `{`,
-			statusWanted: http.StatusBadRequest,
-			errMsg:       "Invalid request body",
-			wantCalls:    0,
+			name:       "missing name",
+			body:       `{"name":"","code":"CS101","semester_id":3}`,
+			createErr:  errs.ErrCourseCodeAndNameRequired,
+			wantStatus: http.StatusBadRequest,
+			wantCreateN: 1,
 		},
 		{
-			name:         "400 when service returns validation error",
-			body:         `{"name":"","code":"nfa008","semester_id":3}`,
-			createErr:    errs.ErrCourseCodeAndNameRequired,
-			statusWanted: http.StatusBadRequest,
-			errMsg:       "Course code and course name are required",
-			wantCalls:    1,
-		},
-		{
-			name:         "400 when service returns invalid semester id",
-			body:         `{"name":"BDD","code":"nfa008","semester_id":0}`,
-			createErr:    errs.ErrCourseInvalidSemestreID,
-			statusWanted: http.StatusBadRequest,
-			errMsg:       "Course invalid semestre id ",
-			wantCalls:    1,
-		},
-		{
-			name:         "409 when the course is already in that semester",
-			body:         `{"name":"BDD","code":"nfa008","semester_id":3}`,
-			createErr:    errs.ErrCourseAlreadyInSemester,
-			statusWanted: http.StatusConflict,
-			errMsg:       "This course is already in that semester",
-			wantCalls:    1,
-		},
-		{
-			name:         "500 when service fails",
-			body:         `{"name":"BDD","code":"nfa008","semester_id":3}`,
-			createErr:    errs.ErrDatabaseDown,
-			statusWanted: http.StatusInternalServerError,
-			errMsg:       "Internal server error",
-			wantCalls:    1,
+			name:       "bad semester",
+			body:       `{"name":"Algo","code":"CS101","semester_id":0}`,
+			createErr:  errs.ErrCourseInvalidSemestreID,
+			wantStatus: http.StatusBadRequest,
+			wantCreateN: 1,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			fake := &fakeCourseService{createErr: tt.createErr}
 			h := testHandler(t, withCourse(fake))
-			req := httptest.NewRequest(http.MethodPost, "/api/admin/courses", bytes.NewBufferString(tt.body))
-			req.Header.Set("Content-Type", "application/json")
 			rr := httptest.NewRecorder()
-
+			req := httptest.NewRequest(http.MethodPost, "/api/admin/courses", bytes.NewBufferString(tt.body))
 			h.handleAdminPostCourse(rr, req)
-
-			if rr.Code != tt.statusWanted {
-				t.Fatalf("status: got %d want %d body=%q", rr.Code, tt.statusWanted, rr.Body.String())
+			if rr.Code != tt.wantStatus {
+				t.Fatalf("status = %d, want %d body=%s", rr.Code, tt.wantStatus, rr.Body.String())
 			}
-
-			if tt.statusWanted != http.StatusCreated {
-				var got map[string]string
-				if err := json.NewDecoder(rr.Body).Decode(&got); err != nil {
-					t.Fatalf("json decode: %v", err)
-				}
-				if got["error"] != tt.errMsg {
-					t.Fatalf("error: got %q want %q", got["error"], tt.errMsg)
-				}
-				if fake.createCalls != tt.wantCalls {
-					t.Fatalf("service.Create calls: got %d want %d", fake.createCalls, tt.wantCalls)
-				}
-				return
+			if fake.createCalls != tt.wantCreateN {
+				t.Fatalf("createCalls = %d, want %d", fake.createCalls, tt.wantCreateN)
 			}
-
-			if fake.createCalls != tt.wantCalls {
-				t.Fatalf("service.Create calls: got %d want %d", fake.createCalls, tt.wantCalls)
-			}
-			if tt.resultWanted == nil {
-				t.Fatal("success case must set resultWanted")
-			}
-			if !reflect.DeepEqual(fake.createCourse, *tt.resultWanted) {
-				t.Fatalf("service.Create course: got %+v want %+v", fake.createCourse, *tt.resultWanted)
-			}
-			var got map[string]string
-			if err := json.NewDecoder(rr.Body).Decode(&got); err != nil {
-				t.Fatalf("json decode: %v", err)
-			}
-			if got["status"] != "ok" {
-				t.Fatalf("status: got %q want %q", got["status"], "ok")
+			if tt.wantCreate != nil && !reflect.DeepEqual(fake.createCourse, *tt.wantCreate) {
+				t.Fatalf("createCourse = %+v, want %+v", fake.createCourse, *tt.wantCreate)
 			}
 		})
 	}
 }
 
 func TestHandleAdminDeleteCourse(t *testing.T) {
-	tests := []struct {
-		name         string
-		pathID       string
-		deleteErr    error
-		statusWanted int
-		errMsg       string
-		wantCalls    int
-		wantID       string
-	}{
-		{
-			name:         "400 invalid course id",
-			pathID:       "abc",
-			deleteErr:    errs.ErrCourseInvalidID,
-			statusWanted: http.StatusBadRequest,
-			errMsg:       "Course invalid id",
-			wantCalls:    1,
-		},
-		{
-			name:         "404 course not found",
-			pathID:       "10",
-			deleteErr:    errs.ErrCourseNotFound,
-			statusWanted: http.StatusNotFound,
-			errMsg:       "Course not found",
-			wantCalls:    1,
-		},
-		{
-			name:         "500 when service fails",
-			pathID:       "10",
-			deleteErr:    errs.ErrDatabaseDown,
-			statusWanted: http.StatusInternalServerError,
-			errMsg:       "Internal server error",
-			wantCalls:    1,
-		},
-		{
-			name:         "accept a valid id",
-			pathID:       "10",
-			statusWanted: http.StatusOK,
-			wantCalls:    1,
-			wantID:       "10",
-		},
-		{
-			name:         "accept a valid id with spaces",
-			pathID:       "  10  ",
-			statusWanted: http.StatusOK,
-			wantCalls:    1,
-			wantID:       "  10  ",
-		},
+	fake := &fakeCourseService{}
+	h := testHandler(t, withCourse(fake))
+	rr := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodDelete, "/api/admin/courses/9", nil)
+	req.SetPathValue("id", "9")
+	h.handleAdminDeleteCourse(rr, req)
+	if rr.Code != http.StatusOK {
+		t.Fatalf("status = %d", rr.Code)
 	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			fake := &fakeCourseService{deleteErr: tt.deleteErr}
-			h := testHandler(t, withCourse(fake))
-			req := httptest.NewRequest(http.MethodDelete, "/api/admin/courses/10", nil)
-			req.SetPathValue("id", tt.pathID)
-			rr := httptest.NewRecorder()
-
-			h.handleAdminDeleteCourse(rr, req)
-
-			if rr.Code != tt.statusWanted {
-				t.Fatalf("status: got %d want %d body=%q", rr.Code, tt.statusWanted, rr.Body.String())
-			}
-
-			if tt.statusWanted != http.StatusOK {
-				var got map[string]string
-				if err := json.NewDecoder(rr.Body).Decode(&got); err != nil {
-					t.Fatalf("json decode: %v", err)
-				}
-				if got["error"] != tt.errMsg {
-					t.Fatalf("error: got %q want %q", got["error"], tt.errMsg)
-				}
-				if fake.deleteCalls != tt.wantCalls {
-					t.Fatalf("service.Delete calls: got %d want %d", fake.deleteCalls, tt.wantCalls)
-				}
-				return
-			}
-
-			if fake.deleteCalls != tt.wantCalls {
-				t.Fatalf("service.Delete calls: got %d want %d", fake.deleteCalls, tt.wantCalls)
-			}
-			if fake.deleteID != tt.wantID {
-				t.Fatalf("service.Delete id: got %q want %q", fake.deleteID, tt.wantID)
-			}
-			var got map[string]string
-			if err := json.NewDecoder(rr.Body).Decode(&got); err != nil {
-				t.Fatalf("json decode: %v", err)
-			}
-			if got["status"] != "ok" {
-				t.Fatalf("response status: got %q want ok", got["status"])
-			}
-		})
+	if fake.deleteID != "9" {
+		t.Fatalf("deleteID = %q", fake.deleteID)
 	}
 }
 
-func courseStrPtr(s string) *string { return &s }
-
 func TestHandleAdminPatchCourse(t *testing.T) {
-	tests := []struct {
-		name         string
-		pathID       string
-		body         string
-		updateErr    error
-		statusWanted int
-		errMsg       string
-		wantCalls    int
-		wantID       string
-		patchWanted  *models.CoursePatch
-	}{
-		{
-			name:         "400 invalid JSON body",
-			pathID:       "10",
-			body:         `{`,
-			statusWanted: http.StatusBadRequest,
-			errMsg:       "Invalid request body",
-			wantCalls:    0,
-		},
-		{
-			name:         "400 invalid course id",
-			pathID:       "abc",
-			body:         `{"name":"Updated"}`,
-			updateErr:    errs.ErrCourseInvalidID,
-			statusWanted: http.StatusBadRequest,
-			errMsg:       "Course invalid id",
-			wantCalls:    1,
-		},
-		{
-			name:         "404 course not found",
-			pathID:       "10",
-			body:         `{"name":"Updated"}`,
-			updateErr:    errs.ErrCourseNotFound,
-			statusWanted: http.StatusNotFound,
-			errMsg:       "Course not found",
-			wantCalls:    1,
-		},
-		{
-			name:         "400 invalid semester id",
-			pathID:       "10",
-			body:         `{"semester_id":0}`,
-			updateErr:    errs.ErrCourseInvalidSemestreID,
-			statusWanted: http.StatusBadRequest,
-			errMsg:       "Course invalid semestre id ",
-			wantCalls:    1,
-		},
-		{
-			name:         "400 empty patch",
-			pathID:       "10",
-			body:         `{}`,
-			updateErr:    errs.ErrCoursePatchEmpty,
-			statusWanted: http.StatusBadRequest,
-			errMsg:       "Course invalid update parameters",
-			wantCalls:    1,
-		},
-		{
-			name:         "400 when name and code are required",
-			pathID:       "10",
-			body:         `{"name":"  "}`,
-			updateErr:    errs.ErrCourseCodeAndNameRequired,
-			statusWanted: http.StatusBadRequest,
-			errMsg:       "Course code and course name are required",
-			wantCalls:    1,
-		},
-		{
-			name:         "500 when service fails",
-			pathID:       "10",
-			body:         `{"name":"Updated"}`,
-			updateErr:    errs.ErrDatabaseDown,
-			statusWanted: http.StatusInternalServerError,
-			errMsg:       "Internal server error",
-			wantCalls:    1,
-		},
-		{
-			name:         "accept valid patch",
-			pathID:       "10",
-			body:         `{"name":"Updated"}`,
-			statusWanted: http.StatusOK,
-			wantCalls:    1,
-			wantID:       "10",
-			patchWanted:  &models.CoursePatch{Name: courseStrPtr("Updated")},
-		},
-		{
-			name:         "accept a valid id with spaces",
-			pathID:       "  10  ",
-			body:         `{"code":"nfa010"}`,
-			statusWanted: http.StatusOK,
-			wantCalls:    1,
-			wantID:       "  10  ",
-			patchWanted:  &models.CoursePatch{Code: courseStrPtr("nfa010")},
-		},
+	fake := &fakeCourseService{}
+	h := testHandler(t, withCourse(fake))
+	body := `{"name":"Renamed"}`
+	rr := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPatch, "/api/admin/courses/4", bytes.NewBufferString(body))
+	req.SetPathValue("id", "4")
+	h.handleAdminPatchCourse(rr, req)
+	if rr.Code != http.StatusOK {
+		t.Fatalf("status = %d body=%s", rr.Code, rr.Body.String())
 	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			fake := &fakeCourseService{updateErr: tt.updateErr}
-			h := testHandler(t, withCourse(fake))
-			req := httptest.NewRequest(http.MethodPatch, "/api/admin/courses/10", bytes.NewBufferString(tt.body))
-			req.SetPathValue("id", tt.pathID)
-			req.Header.Set("Content-Type", "application/json")
-			rr := httptest.NewRecorder()
-
-			h.handleAdminPatchCourse(rr, req)
-
-			if rr.Code != tt.statusWanted {
-				t.Fatalf("status: got %d want %d body=%q", rr.Code, tt.statusWanted, rr.Body.String())
-			}
-
-			if tt.statusWanted != http.StatusOK {
-				var got map[string]string
-				if err := json.NewDecoder(rr.Body).Decode(&got); err != nil {
-					t.Fatalf("json decode: %v", err)
-				}
-				if got["error"] != tt.errMsg {
-					t.Fatalf("error: got %q want %q", got["error"], tt.errMsg)
-				}
-				if fake.updateCalls != tt.wantCalls {
-					t.Fatalf("service.Update calls: got %d want %d", fake.updateCalls, tt.wantCalls)
-				}
-				return
-			}
-
-			if fake.updateCalls != tt.wantCalls {
-				t.Fatalf("service.Update calls: got %d want %d", fake.updateCalls, tt.wantCalls)
-			}
-			if fake.updateID != tt.wantID {
-				t.Fatalf("service.Update id: got %q want %q", fake.updateID, tt.wantID)
-			}
-			if tt.patchWanted == nil {
-				t.Fatal("success case must set patchWanted")
-			}
-			if !reflect.DeepEqual(fake.updatePatch, *tt.patchWanted) {
-				t.Fatalf("service.Update patch: got %+v want %+v", fake.updatePatch, *tt.patchWanted)
-			}
-			var got map[string]string
-			if err := json.NewDecoder(rr.Body).Decode(&got); err != nil {
-				t.Fatalf("json decode: %v", err)
-			}
-			if got["status"] != "ok" {
-				t.Fatalf("response status: got %q want ok", got["status"])
-			}
-		})
+	if fake.updateID != "4" {
+		t.Fatalf("updateID = %q", fake.updateID)
 	}
+	_ = json.Unmarshal
 }

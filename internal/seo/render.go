@@ -7,7 +7,7 @@ import (
 	"html/template"
 	"strings"
 
-	"infolinks-backend/internal/repository"
+	"lu-links/internal/repository"
 )
 
 type pageLayout struct {
@@ -98,16 +98,16 @@ func buildCourseIntro(data *repository.CoursePageData) string {
 		typePhrase = strings.Join(types, ", ")
 	}
 	return fmt.Sprintf(
-		"Hub étudiant Info Links — matériaux CNAM Liban et ISAE CNAM pour %s (%s). "+
+		"Hub étudiant LU Links — matériaux Université Libanaise pour %s (%s). "+
 			"Trouvez %s : liens Drive, Telegram et Google Classroom partagés par les étudiants.",
 		data.Name, strings.ToUpper(data.Code), typePhrase,
 	)
 }
 
 func renderProgramPage(baseURL string, data *repository.ProgramPageData) (string, error) {
-	title := fmt.Sprintf("%s — cours & matériaux | CNAM Liban Info Links", data.Name)
+	title := fmt.Sprintf("%s — cours & matériaux | LU Links", data.Name)
 	desc := fmt.Sprintf(
-		"Liste des cours %s au CNAM Liban — codes, TD, cours, examens, sessions. Hub Info Links pour génie informatique et licence.",
+		"Liste des cours %s à l'Université Libanaise — codes, TD, cours, examens, sessions. Hub LU Links pour génie informatique et licence.",
 		data.Name,
 	)
 	canonical := fmt.Sprintf("%s/program/%s", strings.TrimSuffix(baseURL, "/"), data.Slug)
@@ -123,8 +123,8 @@ func renderProgramPage(baseURL string, data *repository.ProgramPageData) (string
 }
 
 func renderCoursesIndex(baseURL string, entries []repository.CourseIndexEntry) (string, error) {
-	title := "Tous les cours CNAM — codes & matériaux | Info Links"
-	desc := "Index des cours CNAM Liban (ISAE CNAM) : codes, TD, cours, examens, sessions, vidéos. Licence info, master, génie informatique."
+	title := "Tous les cours LU — codes & matériaux | LU Links"
+	desc := "Index des cours Université Libanaise : codes, TD, cours, examens, sessions, vidéos. Licence info, master, génie informatique."
 	canonical := strings.TrimSuffix(baseURL, "/") + "/courses"
 	view := coursesIndexView{
 		Title:       title,
@@ -137,10 +137,10 @@ func renderCoursesIndex(baseURL string, entries []repository.CourseIndexEntry) (
 }
 
 func render404(baseURL string) (string, error) {
-	body := `<main class="seo-main"><h1>Cours introuvable</h1><p>Ce code cours n'existe pas sur Info Links.</p><p><a href="/">Retour à l'accueil</a> · <a href="/courses">Tous les cours</a></p></main>`
+	body := `<main class="seo-main"><h1>Cours introuvable</h1><p>Ce code cours n'existe pas sur LU Links.</p><p><a href="/">Retour à l'accueil</a> · <a href="/courses">Tous les cours</a></p></main>`
 	return executeLayout(pageLayout{
-		Title:       "Cours introuvable | Info Links",
-		Description: "Code cours non trouvé sur Info Links CNAM Liban.",
+		Title:       "Cours introuvable | LU Links",
+		Description: "Code cours non trouvé sur LU Links Université Libanaise.",
 		Canonical:   strings.TrimSuffix(baseURL, "/") + "/",
 		BaseURL:     strings.TrimSuffix(baseURL, "/"),
 		Body:        template.HTML(body),
@@ -156,8 +156,8 @@ func render500(baseURL, requestID string) (string, error) {
 		refLine +
 		`<p><a href="/">Retour à l'accueil</a> · <a href="/courses">Tous les cours</a></p></main>`
 	return executeLayout(pageLayout{
-		Title:       "Error | Info Links",
-		Description: "Temporary error on Info Links.",
+		Title:       "Error | LU Links",
+		Description: "Temporary error on LU Links.",
 		Canonical:   strings.TrimSuffix(baseURL, "/") + "/",
 		BaseURL:     strings.TrimSuffix(baseURL, "/"),
 		Body:        template.HTML(body),
@@ -259,7 +259,7 @@ const layoutTpl = `<!DOCTYPE html>
 {{if .JSONLD}}{{.JSONLD}}{{end}}
 </head>
 <body>
-<nav class="seo-nav"><a href="/">Info Links</a> · <a href="/courses">Tous les cours</a></nav>
+<nav class="seo-nav"><a href="/">LU Links</a> · <a href="/courses">Tous les cours</a></nav>
 {{.Body}}
 </body>
 </html>`
@@ -290,12 +290,12 @@ const courseBodyTpl = `<main class="seo-main">
 <p><strong>Où trouver les examens, TD et cours pour {{.Code}} ?</strong></p>
 <p>Les sections ci-dessus regroupent les liens étudiants (Drive, Telegram, Classroom). Ouvrez l'application pour accéder rapidement à tous les liens.</p>
 </div>
-<a class="seo-cta" href="/?highlight={{lower .Code}}">Ouvrir dans Info Links</a>
+<a class="seo-cta" href="/?highlight={{lower .Code}}">Ouvrir dans LU Links</a>
 </main>`
 
 const programBodyTpl = `<main class="seo-main">
 <h1>{{.ProgramName}}</h1>
-<p class="seo-intro">Cours et matériaux CNAM Liban — TD, cours, examens, sessions, vidéos. Cliquez sur un code pour voir tous les liens.</p>
+<p class="seo-intro">Cours et matériaux Université Libanaise — TD, cours, examens, sessions, vidéos. Cliquez sur un code pour voir tous les liens.</p>
 {{if .Courses}}
 <table class="seo-table">
 <thead><tr><th>Code</th><th>Cours</th></tr></thead>
@@ -308,12 +308,12 @@ const programBodyTpl = `<main class="seo-main">
 {{else}}
 <p class="seo-empty">Aucun cours listé.</p>
 {{end}}
-<a class="seo-cta" href="/">Ouvrir Info Links</a>
+<a class="seo-cta" href="/">Ouvrir LU Links</a>
 </main>`
 
 const coursesIndexBodyTpl = `<main class="seo-main">
-<h1>Tous les cours CNAM</h1>
-<p class="seo-intro">Index Info Links — codes cours, matériaux, TD, cours, examens, sessions et vidéos pour CNAM Liban et ISAE CNAM (licence info, master, génie informatique).</p>
+<h1>Tous les cours LU</h1>
+<p class="seo-intro">Index LU Links — codes cours, matériaux, TD, cours, examens, sessions et vidéos pour Université Libanaise (licence info, master, génie informatique).</p>
 <table class="seo-table">
 <thead><tr><th>Code</th><th>Cours</th><th>Programme</th></tr></thead>
 <tbody>
@@ -322,5 +322,5 @@ const coursesIndexBodyTpl = `<main class="seo-main">
 {{end}}
 </tbody>
 </table>
-<a class="seo-cta" href="/">Ouvrir Info Links</a>
+<a class="seo-cta" href="/">Ouvrir LU Links</a>
 </main>`

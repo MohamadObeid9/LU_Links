@@ -2,7 +2,7 @@ package api
 
 import (
 	"encoding/json"
-	"infolinks-backend/internal/middleware"
+	"lu-links/internal/middleware"
 	"net/http"
 	"strconv"
 	"strings"

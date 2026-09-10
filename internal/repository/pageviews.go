@@ -5,7 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 
-	"infolinks-backend/internal/models"
+	"lu-links/internal/models"
 )
 
 type postgresPageViewRepository struct {

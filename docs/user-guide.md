@@ -1,24 +1,38 @@
 # User Guide
 
-How to use [infolinks.app](https://infolinks.app/) — for students and admins. For developers, see the [README](../README.md).
+How to use [LU Links](https://lu-links.onrender.com/) — for students and admins. For developers, see the [README](../README.md).
 
 ---
 
 ## Overview
 
-**Info Links** helps CNAM Lebanon Computer Science students discover and organize course materials in one place — **50+ courses**, hundreds of curated links, and **300+ active users**.
+**LU Links** is the course materials hub for **Lebanese University** students — faculties, campuses, and specialisations, with curated Drive / Classroom / Telegram links in one place.
 
-- **Telegram updates:** [@Info_Links9](https://t.me/Info_Links9)
-- **Contribute without code:** use **Report** or **Contribute** in the app nav
+- **Telegram updates:** [@LU_Links9](https://t.me/LU_Links9)
+- **How to contribute:** [Telegram guide](https://t.me/LU_Links_Contributing_Guide) · **Report / Contribute** or **Feedback / Suggestion** in the app nav
+
+---
+
+## Language & theme
+
+Use the **language** button (EN / FR / ع) and **theme** button in the nav (system / light / dark). Preferences are saved on your device and, when signed in, on your account.
+
+| Language | UI |
+|----------|-----|
+| English (`eng`) | Default LTR |
+| French (`fr`) | LTR |
+| Arabic (`ar`) | RTL for student pages (nav drawer labels, titles, pick cards, etc.) |
+
+The **Admin dashboard** stays **English and LTR** even when the rest of the site is Arabic.
 
 ---
 
 ## For students
 
-1. Open the site and select your **program** tab.
-2. **Search** (`/` or `Ctrl+K`) or filter by year/semester to find a course.
+1. Open the site. On mobile, start from **Faculties** (or search if you know a course code).
+2. Browse **Faculty → Campus → Specialisation**, then filter by year / semester if needed.
 3. Expand a course and open a link — badge color is the link type; label text is the content type (see legends below).
-4. **Star** courses you revisit often. Use **Report** or **Contribute** when a link is broken or you have a new resource.
+4. **Star** courses you revisit often. Use **Report / Contribute** when a link is broken or you have a new resource. Use **Feedback / Suggestion** to rate the site or propose an improvement.
 
 Install from the browser menu as a **PWA** for a home-screen shortcut (service worker enabled in production builds).
 
@@ -50,33 +64,36 @@ Browsing never does. Search, filter, and look through courses without signing up
 | Report a broken link | Yes |
 | Contribute a new resource | Yes |
 | Send feedback | Yes |
+| Send a suggestion | Yes |
 
 When you try one of these without an account, a short signup form appears and the action continues right after you finish.
 
 ### Student features
 
+- **Faculty → campus → specialisation** browse (plus year / semester filters)
 - **Smart search** — find courses by name or code (`/` or `Ctrl+K`)
-- **Organized by program** — sorted by year, semester, and specialization
-- **Account without a password** — first name, last name, and a number 1-100
+- **UI in English, French, or Arabic** (Arabic uses RTL layout)
+- **Account without a password** — first name, last name, and a number 1–100
 - **Favorites that follow you** — starred courses are saved to your account and appear on every device you sign in on
 - **Content type labels** — TD, Cours, Videos, Sessions, Exams at a glance
 - **Link type badges** — Google Drive, Classroom, Telegram, and more
-- **Light/dark mode** — system detection with persistence
-- **Report & contribute** — submit broken links or new resources
-- **Tips** — link-type badges, starring courses, and contributing via the [Telegram guide](https://t.me/Info_Links_Contributing_Guide)
-- **Feedback** — rate the platform (1–5 stars) by category
+- **Light / dark / system theme**
+- **Report / Contribute** — broken links or new resources (pick the course via the hierarchy)
+- **Feedback / Suggestion** — rate the platform (1–5 stars) or suggest an improvement
+- **Tips** — link-type badges, starring courses, and contributing via the [Telegram guide](https://t.me/LU_Links_Contributing_Guide)
 - **PWA** — installable with offline service worker support
-- **SEO pages** — server-rendered course and program pages for search engines
+- **SEO pages** — server-rendered course and faculty pages for search engines
 
 ---
 
 ## For admins
 
-1. **Admin** → log in with your Supabase credentials (the API issues a JWT for the session).
-2. **Courses** — manage offerings and links. The same course code is one catalog row; adding it to another program shares its links automatically. Deleting a course from one program leaves it in others.
-3. **Contributions**, **Reports**, and **Feedback** — review user submissions. Contributions can be **approved** (adds the link) or **rejected** (kept in the list, not deleted). Each row shows the **sender's handle**.
-4. **Analytics** — unique students per range alongside visit counts and top clicked links; export JSON when needed.
-5. **Students** — browse every registered student, search by name, and open one to see their full history.
+1. **Admin** → log in with your Supabase credentials (the API issues a JWT for the session). The panel UI is always English / LTR.
+2. **Structure** — CRUD faculties, campuses (branches), specialisations, and offerings.
+3. **Courses & Links** — manage courses under an offering. Filter by faculty / campus / specialisation. Links may list languages (`ar` / `fr` / `en`).
+4. **Extra Resources**, **Feedbacks**, **Suggestions**, **Reports**, **Contributions** — review inbox items. Contributions can be **approved** (adds the link) or **rejected**. Each row shows the **sender's handle** when available.
+5. **Analytics** — unique students per range alongside visit counts and top clicked links; export JSON when needed.
+6. **Students** — browse every registered student, search by name, and open one to see their full history.
 
 Admin login is unchanged and stays separate from student accounts: admins sign in with Supabase credentials, students never do.
 
@@ -84,7 +101,7 @@ Admin login is unchanged and stays separate from student accounts: admins sign i
 
 - Alphabetical list of registered students with first seen and last seen dates
 - Search by handle
-- Detail view with a single activity timeline — visits (e.g. “visited home from phone”), links opened, reports, contributions, feedback, and favorites added or removed, newest first. The profile card shows the device from their most recent classified visit.
+- Detail view with a single activity timeline — visits (e.g. “visited home from phone”), links opened, reports, contributions, feedback, suggestions, and favorites added or removed, newest first. The profile card shows the device from their most recent classified visit.
 
 Activity from before a student signed up is kept and appears in their timeline, because the visitor record is claimed at signup rather than replaced. If they already have an account and sign in instead, that first guest visit is moved onto their student row so it shows their handle, not `guest_<id>`.
 
@@ -104,14 +121,14 @@ Counting is done in the database rather than in the browser, so the dashboard st
 
 ### Admin features
 
-- Full course and link CRUD with program/year/semester placement
+- Structure CRUD for faculties, campuses, specialisations, and offerings
+- Course and link CRUD scoped to a branch×specialisation offering
 - Optional vs. mandatory course labeling
-- Sibling course detection — shared courses auto-sync names, codes, and links
-- Multi-content link management (TD, Cours, Videos, Sessions, Exams)
+- Multi-content link management (TD, Cours, Videos, Sessions, Exams) and link languages
 - Analytics dashboard — overview cards, growth chart, paged today's visitors, top links/students, JSON export
 - Students directory with per-student activity timeline
-- Sender handle on contributions, reports, and feedback
-- Contribution, report, and feedback review workflows
+- Sender handle on contributions, reports, feedback, and suggestions
+- Contribution, report, feedback, and suggestion review workflows
 - JWT-secured admin panel via the Go API
 - Extra resources sections beyond regular courses
 

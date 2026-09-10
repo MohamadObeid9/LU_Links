@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"infolinks-backend/internal/repository"
+	"lu-links/internal/repository"
 )
 
 // BuildCourseTitle builds the HTML title for a course page (~60 chars target).
@@ -14,9 +14,9 @@ func BuildCourseTitle(name, code string, links []repository.SEOLink) string {
 	if len(types) > 0 {
 		typeStr = strings.Join(types, ", ")
 	}
-	title := fmt.Sprintf("%s (%s) — %s | CNAM Liban Info Links", name, strings.ToUpper(code), typeStr)
+	title := fmt.Sprintf("%s (%s) — %s | LU Links", name, strings.ToUpper(code), typeStr)
 	if len(title) > 65 {
-		title = fmt.Sprintf("%s (%s) | CNAM Liban Info Links", name, strings.ToUpper(code))
+		title = fmt.Sprintf("%s (%s) | LU Links", name, strings.ToUpper(code))
 	}
 	return title
 }
@@ -31,12 +31,12 @@ func BuildCourseDescription(data *repository.CoursePageData) string {
 		typeStr = strings.Join(types, ", ")
 	}
 	desc := fmt.Sprintf(
-		"Ressources étudiants CNAM Liban pour %s (%s) — %s. Liens %s (Drive, Telegram, Classroom). Programmes: %s.",
+		"Ressources étudiants Université Libanaise pour %s (%s) — %s. Liens %s (Drive, Telegram, Classroom). Parcours: %s.",
 		data.Name, strings.ToUpper(data.Code), typeStr, typeStr, progStr,
 	)
 	if len(desc) > 160 {
 		desc = fmt.Sprintf(
-			"Matériaux %s (%s) — CNAM Liban Info Links. %s. Liens étudiants Drive, Telegram, Classroom.",
+			"Matériaux %s (%s) — LU Links. %s. Liens étudiants Drive, Telegram, Classroom.",
 			data.Name, strings.ToUpper(data.Code), typeStr,
 		)
 	}

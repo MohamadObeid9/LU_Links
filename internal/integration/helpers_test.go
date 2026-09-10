@@ -12,14 +12,14 @@ import (
 	"testing"
 	"time"
 
-	"infolinks-backend/internal/api"
-	"infolinks-backend/internal/app"
-	"infolinks-backend/internal/config"
-	"infolinks-backend/internal/database"
-	"infolinks-backend/internal/repository"
-	"infolinks-backend/internal/seo"
-	"infolinks-backend/internal/service"
-	"infolinks-backend/internal/webbotauth"
+	"lu-links/internal/api"
+	"lu-links/internal/app"
+	"lu-links/internal/config"
+	"lu-links/internal/database"
+	"lu-links/internal/repository"
+	"lu-links/internal/seo"
+	"lu-links/internal/service"
+	"lu-links/internal/webbotauth"
 )
 
 const (
@@ -41,12 +41,15 @@ TRUNCATE TABLE
 	reports,
 	links,
 	extra_links,
-	course_placements,
 	courses,
 	extra_sections,
 	semesters,
 	years,
-	programs,
+	branch_specialisations,
+	specialisations,
+	faculty_branches,
+	branches,
+	faculties,
 	users
 RESTART IDENTITY CASCADE
 `
@@ -117,11 +120,13 @@ func newTestHandler(t *testing.T, dbClient *database.Client) *api.Handler {
 		ReportService:       deps.ReportService,
 		ContentService:      deps.ContentService,
 		FeedbackService:     deps.FeedbackService,
+		SuggestionService:   deps.SuggestionService,
 		PageViewService:     deps.PageViewService,
 		LinkClickService:    deps.LinkClickService,
 		ExtraLinkService:    deps.ExtraLinkService,
 		ContributionService: deps.ContributionService,
 		ExtraSectionService: deps.ExtraSectionService,
+		HierarchyService:    deps.HierarchyService,
 		Logger:              logger,
 	})
 	if err != nil {

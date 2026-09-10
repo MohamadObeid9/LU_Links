@@ -72,17 +72,17 @@ Three registration functions in `router.go`:
 - `GET /.well-known/openid-configuration` — OIDC Discovery (same core fields, includes `jwks_uri`)
 - `GET /.well-known/jwks.json` — JWKS (empty `keys`; tokens are HS256 shared-secret)
 - `GET /.well-known/agent-card.json` — A2A Agent Card (HTTP+JSON skills for the public API)
-- `GET /.well-known/agents-index.json` — DNS-AID / ANS-style org index (A2A + MCP cards for `info-links`)
+- `GET /.well-known/agents-index.json` — DNS-AID / ANS-style org index (A2A + MCP cards for `lu-links`)
 - `GET /.well-known/agent-skills/index.json` — Agent Skills Discovery index (v0.2.0)
 - `GET /.well-known/agent-skills/{name}/SKILL.md` — individual skill artifacts (+ digests in the index)
 - `GET /.well-known/mcp/server-card.json` — MCP Server Card (SEP-1649 discovery)
 - `GET /.well-known/http-message-signatures-directory` — Web Bot Auth JWKS (Ed25519), response signed with HTTP Message Signatures
 - `GET|POST|DELETE /mcp` — advertised MCP Streamable HTTP endpoint (stub until full MCP is implemented)
-- Browser **WebMCP** — `navigator.modelContext.registerTool` on homepage load (`frontend/js/webmcp.js`: search, programs, course lookup, navigate)
+- Browser **WebMCP** — `navigator.modelContext.registerTool` on homepage load (`frontend/js/webmcp.js`: search, faculties/hierarchy, course lookup, navigate)
 - `GET /auth.md` — Auth.md skill document for agents
 - `GET /openapi.json` — OpenAPI 3.1 description (`service-desc`)
 - `GET /api/docs` — human API docs in markdown (`service-doc`)
-- `POST /api/reports`, `/api/feedback`, `/api/page_views`, … — user submissions
+- `POST /api/reports`, `/api/feedback`, `/api/suggestions`, `/api/page_views`, … — user submissions
 - `POST /api/auth/login` — admin login, returns JWT
 - `GET /healthz`, `GET /readyz` — probes for Render/load balancers
 - `GET /metrics` — provide the metrics for **Prometheus** , protected by a username/password
@@ -90,7 +90,7 @@ Three registration functions in `router.go`:
 **Admin (`registerAdminRoutes`)** — every route wrapped with `middleware.RequireAdmin`:
 
 - CRUD on links, courses, extra sections/links
-- List/update/delete reports, feedback, contributions
+- List/update/delete reports, feedback, suggestions, contributions
 - Analytics: page views, link clicks, summary dashboards
 
 **SEO (`registerSEORoutes`)** — separate `seo.Handler`, returns HTML not JSON:

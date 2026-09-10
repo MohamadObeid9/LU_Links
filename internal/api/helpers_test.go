@@ -9,8 +9,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"infolinks-backend/internal/middleware"
-	"infolinks-backend/internal/webbotauth"
+	"lu-links/internal/middleware"
+	"lu-links/internal/webbotauth"
 )
 
 // testStudentID is the student id the auth middleware would put in the context.
@@ -34,11 +34,13 @@ type handlerTestDeps struct {
 	report       *fakeReportService
 	content      *fakeContentService
 	feedback     *fakeFeedbackService
+	suggestion   *fakeSuggestionService
 	pageView     *fakePageViewService
 	linkClick    *fakeLinkClickService
 	contribution *fakeContributionService
 	extraSection *fakeExtraSectionService
 	extraLink    *fakeExtraLinkService
+	hierarchy    *fakeHierarchyService
 }
 
 type testHandlerOption func(*handlerTestDeps)
@@ -65,6 +67,10 @@ func withContent(s *fakeContentService) testHandlerOption {
 
 func withFeedback(s *fakeFeedbackService) testHandlerOption {
 	return func(d *handlerTestDeps) { d.feedback = s }
+}
+
+func withSuggestion(s *fakeSuggestionService) testHandlerOption {
+	return func(d *handlerTestDeps) { d.suggestion = s }
 }
 
 func withContribution(s *fakeContributionService) testHandlerOption {
@@ -103,11 +109,13 @@ func testHandler(t *testing.T, opts ...testHandlerOption) *Handler {
 		course:       &fakeCourseService{},
 		content:      &fakeContentService{},
 		feedback:     &fakeFeedbackService{},
+		suggestion:   &fakeSuggestionService{},
 		pageView:     &fakePageViewService{},
 		linkClick:    &fakeLinkClickService{},
 		contribution: &fakeContributionService{},
 		extraSection: &fakeExtraSectionService{},
 		extraLink:    &fakeExtraLinkService{},
+		hierarchy:    &fakeHierarchyService{},
 	}
 	for _, opt := range opts {
 		opt(&deps)
@@ -133,11 +141,13 @@ func testHandler(t *testing.T, opts ...testHandlerOption) *Handler {
 		CourseService:       deps.course,
 		ContentService:      deps.content,
 		FeedbackService:     deps.feedback,
+		SuggestionService:   deps.suggestion,
 		PageViewService:     deps.pageView,
 		LinkClickService:    deps.linkClick,
 		ContributionService: deps.contribution,
 		ExtraSectionService: deps.extraSection,
 		ExtraLinkService:    deps.extraLink,
+		HierarchyService:    deps.hierarchy,
 	})
 	if err != nil {
 		t.Fatalf("NewHandler: %v", err)

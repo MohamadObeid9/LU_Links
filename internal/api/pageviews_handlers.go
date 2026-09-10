@@ -3,8 +3,8 @@ package api
 import (
 	"net/http"
 
-	"infolinks-backend/internal/device"
-	"infolinks-backend/internal/models"
+	"lu-links/internal/device"
+	"lu-links/internal/models"
 )
 
 type pageViewBody struct {

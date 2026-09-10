@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict Vx14eV1gKROdF6JRPf88ilnzJ9u5xR8PmH6s6S6b5ctnVRbfGGi4sm6fdY1ZsLJ
+\restrict 926R7scKBYzBTudNZF4ZMJ5QerwuDgoYeFj2MxCcXHc74HbWNeInsj2xBKrdSc5
 
 -- Dumped from database version 17.6
 -- Dumped by pg_dump version 18.4
@@ -31,6 +31,22 @@ CREATE SCHEMA public;
 --
 
 COMMENT ON SCHEMA public IS 'standard public schema';
+
+
+--
+-- Name: links_languages_valid(jsonb); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.links_languages_valid(langs jsonb) RETURNS boolean
+    LANGUAGE sql IMMUTABLE
+    AS $$
+    SELECT jsonb_typeof(langs) = 'array'
+       AND NOT EXISTS (
+           SELECT 1
+           FROM jsonb_array_elements_text(langs) AS lang
+           WHERE lang NOT IN ('ar', 'fr', 'en')
+       );
+$$;
 
 
 --
@@ -69,6 +85,58 @@ $$;
 SET default_tablespace = '';
 
 SET default_table_access_method = heap;
+
+--
+-- Name: branch_specialisations; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.branch_specialisations (
+    id integer NOT NULL,
+    branch_id integer NOT NULL,
+    specialisation_id integer NOT NULL,
+    display_order integer DEFAULT 0 NOT NULL
+);
+
+
+--
+-- Name: branch_specialisations_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+ALTER TABLE public.branch_specialisations ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
+    SEQUENCE NAME public.branch_specialisations_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
+
+--
+-- Name: branches; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.branches (
+    id integer NOT NULL,
+    name text NOT NULL,
+    slug text NOT NULL,
+    display_order integer DEFAULT 0 NOT NULL
+);
+
+
+--
+-- Name: branches_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+ALTER TABLE public.branches ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
+    SEQUENCE NAME public.branches_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
 
 --
 -- Name: browse_events; Type: TABLE; Schema: public; Owner: -
@@ -127,32 +195,6 @@ ALTER TABLE public.contributions ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTIT
 
 
 --
--- Name: course_placements; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.course_placements (
-    id integer NOT NULL,
-    course_id integer NOT NULL,
-    semester_id integer NOT NULL,
-    display_order integer DEFAULT 0 NOT NULL
-);
-
-
---
--- Name: course_placements_id_seq; Type: SEQUENCE; Schema: public; Owner: -
---
-
-ALTER TABLE public.course_placements ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
-    SEQUENCE NAME public.course_placements_id_seq
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1
-);
-
-
---
 -- Name: courses; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -160,7 +202,9 @@ CREATE TABLE public.courses (
     id integer NOT NULL,
     name text NOT NULL,
     code text NOT NULL,
-    is_optional boolean DEFAULT false
+    is_optional boolean DEFAULT false,
+    semester_id integer NOT NULL,
+    display_order integer DEFAULT 0 NOT NULL
 );
 
 
@@ -232,6 +276,42 @@ ALTER TABLE public.extra_sections ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTI
     NO MINVALUE
     NO MAXVALUE
     CACHE 1
+);
+
+
+--
+-- Name: faculties; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.faculties (
+    id integer NOT NULL,
+    name text NOT NULL,
+    slug text NOT NULL,
+    display_order integer DEFAULT 0 NOT NULL
+);
+
+
+--
+-- Name: faculties_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+ALTER TABLE public.faculties ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
+    SEQUENCE NAME public.faculties_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
+
+--
+-- Name: faculty_branches; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.faculty_branches (
+    faculty_id integer NOT NULL,
+    branch_id integer NOT NULL
 );
 
 
@@ -336,6 +416,8 @@ CREATE TABLE public.links (
     note text DEFAULT ''::text,
     display_order integer DEFAULT 0,
     content_type text,
+    languages jsonb DEFAULT '[]'::jsonb NOT NULL,
+    CONSTRAINT links_languages_valid_check CHECK (public.links_languages_valid(languages)),
     CONSTRAINT links_type_check CHECK ((type = ANY (ARRAY['telegram'::text, 'drive'::text, 'classroom'::text, 'other'::text])))
 );
 
@@ -374,32 +456,6 @@ CREATE TABLE public.page_views (
 
 ALTER TABLE public.page_views ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
     SEQUENCE NAME public.page_views_id_seq
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1
-);
-
-
---
--- Name: programs; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.programs (
-    id integer NOT NULL,
-    name text NOT NULL,
-    slug text NOT NULL,
-    display_order integer DEFAULT 0
-);
-
-
---
--- Name: programs_id_seq; Type: SEQUENCE; Schema: public; Owner: -
---
-
-ALTER TABLE public.programs ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
-    SEQUENCE NAME public.programs_id_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -500,6 +556,63 @@ ALTER TABLE public.semesters ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
 
 
 --
+-- Name: specialisations; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.specialisations (
+    id integer NOT NULL,
+    faculty_id integer NOT NULL,
+    name text NOT NULL,
+    slug text NOT NULL,
+    display_order integer DEFAULT 0 NOT NULL
+);
+
+
+--
+-- Name: specialisations_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+ALTER TABLE public.specialisations ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
+    SEQUENCE NAME public.specialisations_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
+
+--
+-- Name: suggestions; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.suggestions (
+    id integer NOT NULL,
+    category text NOT NULL,
+    description text NOT NULL,
+    status text DEFAULT 'new'::text NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    user_id integer,
+    CONSTRAINT suggestions_status_check CHECK ((status = ANY (ARRAY['new'::text, 'read'::text, 'rejected'::text])))
+);
+
+
+--
+-- Name: suggestions_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+ALTER TABLE public.suggestions ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
+    SEQUENCE NAME public.suggestions_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
+
+--
 -- Name: users; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -540,11 +653,10 @@ ALTER TABLE public.users ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
 
 CREATE TABLE public.years (
     id integer NOT NULL,
-    program_id integer,
+    branch_specialisation_id integer,
     name text NOT NULL,
     display_order integer DEFAULT 0
 );
-
 
 
 --
@@ -562,6 +674,38 @@ ALTER TABLE public.years ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
 
 
 --
+-- Name: branch_specialisations branch_specialisations_branch_spec_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.branch_specialisations
+    ADD CONSTRAINT branch_specialisations_branch_spec_key UNIQUE (branch_id, specialisation_id);
+
+
+--
+-- Name: branch_specialisations branch_specialisations_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.branch_specialisations
+    ADD CONSTRAINT branch_specialisations_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: branches branches_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.branches
+    ADD CONSTRAINT branches_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: branches branches_slug_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.branches
+    ADD CONSTRAINT branches_slug_key UNIQUE (slug);
+
+
+--
 -- Name: browse_events browse_events_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -575,22 +719,6 @@ ALTER TABLE ONLY public.browse_events
 
 ALTER TABLE ONLY public.contributions
     ADD CONSTRAINT contributions_pkey PRIMARY KEY (id);
-
-
---
--- Name: course_placements course_placements_course_semester_key; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.course_placements
-    ADD CONSTRAINT course_placements_course_semester_key UNIQUE (course_id, semester_id);
-
-
---
--- Name: course_placements course_placements_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.course_placements
-    ADD CONSTRAINT course_placements_pkey PRIMARY KEY (id);
 
 
 --
@@ -615,6 +743,30 @@ ALTER TABLE ONLY public.extra_links
 
 ALTER TABLE ONLY public.extra_sections
     ADD CONSTRAINT extra_sections_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: faculties faculties_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.faculties
+    ADD CONSTRAINT faculties_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: faculties faculties_slug_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.faculties
+    ADD CONSTRAINT faculties_slug_key UNIQUE (slug);
+
+
+--
+-- Name: faculty_branches faculty_branches_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.faculty_branches
+    ADD CONSTRAINT faculty_branches_pkey PRIMARY KEY (faculty_id, branch_id);
 
 
 --
@@ -658,22 +810,6 @@ ALTER TABLE ONLY public.page_views
 
 
 --
--- Name: programs programs_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.programs
-    ADD CONSTRAINT programs_pkey PRIMARY KEY (id);
-
-
---
--- Name: programs programs_slug_key; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.programs
-    ADD CONSTRAINT programs_slug_key UNIQUE (slug);
-
-
---
 -- Name: reports reports_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -706,6 +842,30 @@ ALTER TABLE ONLY public.semesters
 
 
 --
+-- Name: specialisations specialisations_faculty_slug_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.specialisations
+    ADD CONSTRAINT specialisations_faculty_slug_key UNIQUE (faculty_id, slug);
+
+
+--
+-- Name: specialisations specialisations_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.specialisations
+    ADD CONSTRAINT specialisations_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: suggestions suggestions_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.suggestions
+    ADD CONSTRAINT suggestions_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: users users_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -719,7 +879,6 @@ ALTER TABLE ONLY public.users
 
 ALTER TABLE ONLY public.years
     ADD CONSTRAINT years_pkey PRIMARY KEY (id);
-
 
 
 --
@@ -744,13 +903,6 @@ CREATE INDEX contributions_user_id_created_at_idx ON public.contributions USING 
 
 
 --
--- Name: courses_code_lower_uidx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE UNIQUE INDEX courses_code_lower_uidx ON public.courses USING btree (lower(TRIM(BOTH FROM code))) WHERE ((code IS NOT NULL) AND (TRIM(BOTH FROM code) <> ''::text));
-
-
---
 -- Name: favorite_events_user_id_created_at_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -762,20 +914,6 @@ CREATE INDEX favorite_events_user_id_created_at_idx ON public.favorite_events US
 --
 
 CREATE INDEX feedback_user_id_created_at_idx ON public.feedback USING btree (user_id, created_at DESC);
-
-
---
--- Name: idx_feedback_created_at; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_feedback_created_at ON public.feedback USING btree (created_at DESC);
-
-
---
--- Name: idx_feedback_status; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_feedback_status ON public.feedback USING btree (status);
 
 
 --
@@ -821,11 +959,47 @@ CREATE INDEX search_events_query_created_at_idx ON public.search_events USING bt
 
 
 --
+-- Name: suggestions_created_at_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX suggestions_created_at_idx ON public.suggestions USING btree (created_at DESC);
+
+
+--
+-- Name: suggestions_status_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX suggestions_status_idx ON public.suggestions USING btree (status);
+
+
+--
+-- Name: suggestions_user_id_created_at_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX suggestions_user_id_created_at_idx ON public.suggestions USING btree (user_id, created_at DESC);
+
+
+--
 -- Name: users_unique_username; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE UNIQUE INDEX users_unique_username ON public.users USING btree (first_name, last_name, number) WHERE (is_guest = false);
 
+
+--
+-- Name: branch_specialisations branch_specialisations_branch_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.branch_specialisations
+    ADD CONSTRAINT branch_specialisations_branch_id_fkey FOREIGN KEY (branch_id) REFERENCES public.branches(id) ON DELETE CASCADE;
+
+
+--
+-- Name: branch_specialisations branch_specialisations_specialisation_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.branch_specialisations
+    ADD CONSTRAINT branch_specialisations_specialisation_id_fkey FOREIGN KEY (specialisation_id) REFERENCES public.specialisations(id) ON DELETE CASCADE;
 
 
 --
@@ -845,19 +1019,11 @@ ALTER TABLE ONLY public.contributions
 
 
 --
--- Name: course_placements course_placements_course_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: courses courses_semester_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.course_placements
-    ADD CONSTRAINT course_placements_course_id_fkey FOREIGN KEY (course_id) REFERENCES public.courses(id) ON DELETE CASCADE;
-
-
---
--- Name: course_placements course_placements_semester_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.course_placements
-    ADD CONSTRAINT course_placements_semester_id_fkey FOREIGN KEY (semester_id) REFERENCES public.semesters(id) ON DELETE CASCADE;
+ALTER TABLE ONLY public.courses
+    ADD CONSTRAINT courses_semester_id_fkey FOREIGN KEY (semester_id) REFERENCES public.semesters(id) ON DELETE CASCADE;
 
 
 --
@@ -866,6 +1032,22 @@ ALTER TABLE ONLY public.course_placements
 
 ALTER TABLE ONLY public.extra_links
     ADD CONSTRAINT extra_links_section_id_fkey FOREIGN KEY (section_id) REFERENCES public.extra_sections(id) ON DELETE CASCADE;
+
+
+--
+-- Name: faculty_branches faculty_branches_branch_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.faculty_branches
+    ADD CONSTRAINT faculty_branches_branch_id_fkey FOREIGN KEY (branch_id) REFERENCES public.branches(id) ON DELETE CASCADE;
+
+
+--
+-- Name: faculty_branches faculty_branches_faculty_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.faculty_branches
+    ADD CONSTRAINT faculty_branches_faculty_id_fkey FOREIGN KEY (faculty_id) REFERENCES public.faculties(id) ON DELETE CASCADE;
 
 
 --
@@ -957,160 +1139,40 @@ ALTER TABLE ONLY public.semesters
 
 
 --
--- Name: years years_program_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: specialisations specialisations_faculty_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.specialisations
+    ADD CONSTRAINT specialisations_faculty_id_fkey FOREIGN KEY (faculty_id) REFERENCES public.faculties(id) ON DELETE CASCADE;
+
+
+--
+-- Name: suggestions suggestions_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.suggestions
+    ADD CONSTRAINT suggestions_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE SET NULL;
+
+
+--
+-- Name: years years_branch_specialisation_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.years
-    ADD CONSTRAINT years_program_id_fkey FOREIGN KEY (program_id) REFERENCES public.programs(id) ON DELETE CASCADE;
-
-
-
---
--- Name: feedback Allow anon insert feedback; Type: POLICY; Schema: public; Owner: -
---
-
-CREATE POLICY "Allow anon insert feedback" ON public.feedback FOR INSERT TO anon WITH CHECK (true);
+    ADD CONSTRAINT years_branch_specialisation_id_fkey FOREIGN KEY (branch_specialisation_id) REFERENCES public.branch_specialisations(id) ON DELETE CASCADE;
 
 
 --
--- Name: feedback Allow anonymous insert; Type: POLICY; Schema: public; Owner: -
+-- Name: branch_specialisations; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
-CREATE POLICY "Allow anonymous insert" ON public.feedback FOR INSERT TO anon WITH CHECK (true);
-
-
---
--- Name: feedback Allow authenticated manage; Type: POLICY; Schema: public; Owner: -
---
-
-CREATE POLICY "Allow authenticated manage" ON public.feedback TO authenticated USING (true);
-
+ALTER TABLE public.branch_specialisations ENABLE ROW LEVEL SECURITY;
 
 --
--- Name: feedback Allow authenticated users to delete feedback; Type: POLICY; Schema: public; Owner: -
+-- Name: branches; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
-CREATE POLICY "Allow authenticated users to delete feedback" ON public.feedback FOR DELETE USING ((auth.role() = 'authenticated'::text));
-
-
---
--- Name: feedback Allow authenticated users to read feedback; Type: POLICY; Schema: public; Owner: -
---
-
-CREATE POLICY "Allow authenticated users to read feedback" ON public.feedback FOR SELECT TO authenticated, anon USING ((auth.role() = 'authenticated'::text));
-
-
---
--- Name: feedback Allow authenticated users to update feedback; Type: POLICY; Schema: public; Owner: -
---
-
-CREATE POLICY "Allow authenticated users to update feedback" ON public.feedback FOR UPDATE USING ((auth.role() = 'authenticated'::text)) WITH CHECK ((auth.role() = 'authenticated'::text));
-
-
---
--- Name: courses Allow public read courses; Type: POLICY; Schema: public; Owner: -
---
-
-CREATE POLICY "Allow public read courses" ON public.courses FOR SELECT USING (true);
-
-
---
--- Name: links Allow public read links; Type: POLICY; Schema: public; Owner: -
---
-
-CREATE POLICY "Allow public read links" ON public.links FOR SELECT USING (true);
-
-
---
--- Name: programs Allow public read programs; Type: POLICY; Schema: public; Owner: -
---
-
-CREATE POLICY "Allow public read programs" ON public.programs FOR SELECT USING (true);
-
-
---
--- Name: contributions admin all; Type: POLICY; Schema: public; Owner: -
---
-
-CREATE POLICY "admin all" ON public.contributions USING ((auth.role() = 'authenticated'::text));
-
-
---
--- Name: courses admin all; Type: POLICY; Schema: public; Owner: -
---
-
-CREATE POLICY "admin all" ON public.courses USING ((auth.role() = 'authenticated'::text));
-
-
---
--- Name: extra_links admin all; Type: POLICY; Schema: public; Owner: -
---
-
-CREATE POLICY "admin all" ON public.extra_links USING ((auth.role() = 'authenticated'::text));
-
-
---
--- Name: extra_sections admin all; Type: POLICY; Schema: public; Owner: -
---
-
-CREATE POLICY "admin all" ON public.extra_sections USING ((auth.role() = 'authenticated'::text));
-
-
---
--- Name: links admin all; Type: POLICY; Schema: public; Owner: -
---
-
-CREATE POLICY "admin all" ON public.links USING ((auth.role() = 'authenticated'::text));
-
-
---
--- Name: programs admin all; Type: POLICY; Schema: public; Owner: -
---
-
-CREATE POLICY "admin all" ON public.programs USING ((auth.role() = 'authenticated'::text));
-
-
---
--- Name: reports admin all; Type: POLICY; Schema: public; Owner: -
---
-
-CREATE POLICY "admin all" ON public.reports USING ((auth.role() = 'authenticated'::text));
-
-
---
--- Name: semesters admin all; Type: POLICY; Schema: public; Owner: -
---
-
-CREATE POLICY "admin all" ON public.semesters USING ((auth.role() = 'authenticated'::text));
-
-
---
--- Name: years admin all; Type: POLICY; Schema: public; Owner: -
---
-
-CREATE POLICY "admin all" ON public.years USING ((auth.role() = 'authenticated'::text));
-
-
---
--- Name: page_views admin read; Type: POLICY; Schema: public; Owner: -
---
-
-CREATE POLICY "admin read" ON public.page_views FOR SELECT USING ((auth.role() = 'authenticated'::text));
-
-
---
--- Name: link_clicks anon_insert_link_clicks; Type: POLICY; Schema: public; Owner: -
---
-
-CREATE POLICY anon_insert_link_clicks ON public.link_clicks FOR INSERT TO anon WITH CHECK (true);
-
-
---
--- Name: link_clicks auth_select_link_clicks; Type: POLICY; Schema: public; Owner: -
---
-
-CREATE POLICY auth_select_link_clicks ON public.link_clicks FOR SELECT TO authenticated USING (true);
-
+ALTER TABLE public.branches ENABLE ROW LEVEL SECURITY;
 
 --
 -- Name: browse_events; Type: ROW SECURITY; Schema: public; Owner: -
@@ -1123,40 +1185,6 @@ ALTER TABLE public.browse_events ENABLE ROW LEVEL SECURITY;
 --
 
 ALTER TABLE public.contributions ENABLE ROW LEVEL SECURITY;
-
---
--- Name: contributions contributions_anon_insert; Type: POLICY; Schema: public; Owner: -
---
-
-CREATE POLICY contributions_anon_insert ON public.contributions FOR INSERT TO anon WITH CHECK (true);
-
-
---
--- Name: contributions contributions_auth_delete; Type: POLICY; Schema: public; Owner: -
---
-
-CREATE POLICY contributions_auth_delete ON public.contributions FOR DELETE TO authenticated USING (true);
-
-
---
--- Name: contributions contributions_auth_select; Type: POLICY; Schema: public; Owner: -
---
-
-CREATE POLICY contributions_auth_select ON public.contributions FOR SELECT TO authenticated USING (true);
-
-
---
--- Name: contributions contributions_auth_update; Type: POLICY; Schema: public; Owner: -
---
-
-CREATE POLICY contributions_auth_update ON public.contributions FOR UPDATE TO authenticated USING (true) WITH CHECK (true);
-
-
---
--- Name: course_placements; Type: ROW SECURITY; Schema: public; Owner: -
---
-
-ALTER TABLE public.course_placements ENABLE ROW LEVEL SECURITY;
 
 --
 -- Name: courses; Type: ROW SECURITY; Schema: public; Owner: -
@@ -1175,6 +1203,18 @@ ALTER TABLE public.extra_links ENABLE ROW LEVEL SECURITY;
 --
 
 ALTER TABLE public.extra_sections ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: faculties; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.faculties ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: faculty_branches; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.faculty_branches ENABLE ROW LEVEL SECURITY;
 
 --
 -- Name: favorite_events; Type: ROW SECURITY; Schema: public; Owner: -
@@ -1207,142 +1247,10 @@ ALTER TABLE public.links ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.page_views ENABLE ROW LEVEL SECURITY;
 
 --
--- Name: page_views page_views_anon_insert; Type: POLICY; Schema: public; Owner: -
---
-
-CREATE POLICY page_views_anon_insert ON public.page_views FOR INSERT TO anon WITH CHECK (true);
-
-
---
--- Name: page_views page_views_auth_select; Type: POLICY; Schema: public; Owner: -
---
-
-CREATE POLICY page_views_auth_select ON public.page_views FOR SELECT TO authenticated USING (true);
-
-
---
--- Name: programs; Type: ROW SECURITY; Schema: public; Owner: -
---
-
-ALTER TABLE public.programs ENABLE ROW LEVEL SECURITY;
-
---
--- Name: contributions public insert; Type: POLICY; Schema: public; Owner: -
---
-
-CREATE POLICY "public insert" ON public.contributions FOR INSERT WITH CHECK (true);
-
-
---
--- Name: page_views public insert; Type: POLICY; Schema: public; Owner: -
---
-
-CREATE POLICY "public insert" ON public.page_views FOR INSERT WITH CHECK (true);
-
-
---
--- Name: reports public insert; Type: POLICY; Schema: public; Owner: -
---
-
-CREATE POLICY "public insert" ON public.reports FOR INSERT WITH CHECK (true);
-
-
---
--- Name: contributions public read; Type: POLICY; Schema: public; Owner: -
---
-
-CREATE POLICY "public read" ON public.contributions FOR SELECT USING (true);
-
-
---
--- Name: courses public read; Type: POLICY; Schema: public; Owner: -
---
-
-CREATE POLICY "public read" ON public.courses FOR SELECT USING (true);
-
-
---
--- Name: extra_links public read; Type: POLICY; Schema: public; Owner: -
---
-
-CREATE POLICY "public read" ON public.extra_links FOR SELECT USING (true);
-
-
---
--- Name: extra_sections public read; Type: POLICY; Schema: public; Owner: -
---
-
-CREATE POLICY "public read" ON public.extra_sections FOR SELECT USING (true);
-
-
---
--- Name: links public read; Type: POLICY; Schema: public; Owner: -
---
-
-CREATE POLICY "public read" ON public.links FOR SELECT USING (true);
-
-
---
--- Name: programs public read; Type: POLICY; Schema: public; Owner: -
---
-
-CREATE POLICY "public read" ON public.programs FOR SELECT USING (true);
-
-
---
--- Name: reports public read; Type: POLICY; Schema: public; Owner: -
---
-
-CREATE POLICY "public read" ON public.reports FOR SELECT USING (true);
-
-
---
--- Name: semesters public read; Type: POLICY; Schema: public; Owner: -
---
-
-CREATE POLICY "public read" ON public.semesters FOR SELECT USING (true);
-
-
---
--- Name: years public read; Type: POLICY; Schema: public; Owner: -
---
-
-CREATE POLICY "public read" ON public.years FOR SELECT USING (true);
-
-
---
 -- Name: reports; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.reports ENABLE ROW LEVEL SECURITY;
-
---
--- Name: reports reports_anon_insert; Type: POLICY; Schema: public; Owner: -
---
-
-CREATE POLICY reports_anon_insert ON public.reports FOR INSERT TO anon WITH CHECK (true);
-
-
---
--- Name: reports reports_auth_delete; Type: POLICY; Schema: public; Owner: -
---
-
-CREATE POLICY reports_auth_delete ON public.reports FOR DELETE TO authenticated USING (true);
-
-
---
--- Name: reports reports_auth_select; Type: POLICY; Schema: public; Owner: -
---
-
-CREATE POLICY reports_auth_select ON public.reports FOR SELECT TO authenticated USING (true);
-
-
---
--- Name: reports reports_auth_update; Type: POLICY; Schema: public; Owner: -
---
-
-CREATE POLICY reports_auth_update ON public.reports FOR UPDATE TO authenticated USING (true) WITH CHECK (true);
-
 
 --
 -- Name: schema_migrations; Type: ROW SECURITY; Schema: public; Owner: -
@@ -1363,6 +1271,18 @@ ALTER TABLE public.search_events ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.semesters ENABLE ROW LEVEL SECURITY;
 
 --
+-- Name: specialisations; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.specialisations ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: suggestions; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.suggestions ENABLE ROW LEVEL SECURITY;
+
+--
 -- Name: users; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
@@ -1373,9 +1293,10 @@ ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
 --
 
 ALTER TABLE public.years ENABLE ROW LEVEL SECURITY;
+
 --
 -- PostgreSQL database dump complete
 --
 
-\unrestrict Vx14eV1gKROdF6JRPf88ilnzJ9u5xR8PmH6s6S6b5ctnVRbfGGi4sm6fdY1ZsLJ
+\unrestrict 926R7scKBYzBTudNZF4ZMJ5QerwuDgoYeFj2MxCcXHc74HbWNeInsj2xBKrdSc5
 

@@ -8,7 +8,7 @@ import (
 func TestLoad(t *testing.T) {
 	const (
 		dbURL           = "postgres://user:pass@localhost:5432/testdb"
-		localDbURL      = "postgres://postgres:postgres@localhost:5432/infolinks?sslmode=disable"
+		localDbURL      = "postgres://postgres:postgres@localhost:5432/lu_links?sslmode=disable"
 		secret          = "test-jwt-secret"
 		supabseURL      = "https://random.supabase.co"
 		supabaseAnonKey = "a-random-generated-key"
@@ -103,7 +103,7 @@ func TestLoad(t *testing.T) {
 				"JWT_SECRET":        secret,
 				"SUPABASE_URL":      supabseURL,
 				"SUPABASE_ANON_KEY": supabaseAnonKey,
-				"SITE_BASE_URL":     "https://infolinks.example.com",
+				"SITE_BASE_URL":     "https://lu-links.example.com",
 			},
 			want: Config{
 				Port:               "8080",
@@ -114,7 +114,7 @@ func TestLoad(t *testing.T) {
 				SupabaseURL:        supabseURL,
 				SupabaseAnonKey:    supabaseAnonKey,
 				CorsAllowedOrigins: defaultCORS,
-				SiteBaseURL:        "https://infolinks.example.com",
+				SiteBaseURL:        "https://lu-links.example.com",
 			},
 		},
 		{

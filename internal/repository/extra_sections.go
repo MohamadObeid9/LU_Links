@@ -5,8 +5,8 @@ import (
 	"database/sql"
 	"fmt"
 
-	"infolinks-backend/internal/errs"
-	"infolinks-backend/internal/models"
+	"lu-links/internal/errs"
+	"lu-links/internal/models"
 )
 
 type postgresExtraSectionRepository struct {

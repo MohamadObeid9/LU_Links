@@ -9,11 +9,11 @@ import (
 	"strings"
 	"testing"
 
-	"infolinks-backend/internal/config"
-	"infolinks-backend/internal/database"
-	"infolinks-backend/internal/repository"
-	"infolinks-backend/internal/seo"
-	"infolinks-backend/internal/service"
+	"lu-links/internal/config"
+	"lu-links/internal/database"
+	"lu-links/internal/repository"
+	"lu-links/internal/seo"
+	"lu-links/internal/service"
 )
 
 func testSEORouter(t *testing.T) http.Handler {

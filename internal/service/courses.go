@@ -6,9 +6,9 @@ import (
 	"strconv"
 	"strings"
 
-	"infolinks-backend/internal/errs"
-	"infolinks-backend/internal/models"
-	"infolinks-backend/internal/repository"
+	"lu-links/internal/errs"
+	"lu-links/internal/models"
+	"lu-links/internal/repository"
 )
 
 type CourseService struct {
@@ -35,25 +35,14 @@ func (s *CourseService) Create(ctx context.Context, course models.Course) error 
 	return nil
 }
 
-func (s *CourseService) Delete(ctx context.Context, idStr, placementStr string) error {
+func (s *CourseService) Delete(ctx context.Context, idStr string) error {
 	idStr = strings.TrimSpace(idStr)
 	id, err := strconv.Atoi(idStr)
 	if err != nil || id <= 0 {
 		return errs.ErrCourseInvalidID
 	}
-	placementStr = strings.TrimSpace(placementStr)
-	if placementStr == "" {
-		if err := s.repo.Delete(ctx, id); err != nil {
-			return fmt.Errorf("delete course: %w", err)
-		}
-		return nil
-	}
-	placementID, err := strconv.Atoi(placementStr)
-	if err != nil || placementID <= 0 {
-		return errs.ErrCourseInvalidPlacementID
-	}
-	if err := s.repo.DeletePlacement(ctx, id, placementID); err != nil {
-		return fmt.Errorf("delete course placement: %w", err)
+	if err := s.repo.Delete(ctx, id); err != nil {
+		return fmt.Errorf("delete course: %w", err)
 	}
 	return nil
 }
@@ -70,8 +59,7 @@ func (s *CourseService) Update(ctx context.Context, patch models.CoursePatch, id
 	}
 
 	merged := existing
-
-	if patch.Name == nil && patch.Code == nil && patch.SemesterID == nil && patch.IsOptional == nil && patch.PlacementID == nil {
+	if patch.Name == nil && patch.Code == nil && patch.SemesterID == nil && patch.IsOptional == nil {
 		return errs.ErrCoursePatchEmpty
 	}
 
@@ -81,20 +69,11 @@ func (s *CourseService) Update(ctx context.Context, patch models.CoursePatch, id
 	if patch.Code != nil {
 		merged.Code = strings.TrimSpace(*patch.Code)
 	}
-	if patch.PlacementID != nil {
-		if *patch.PlacementID <= 0 {
-			return errs.ErrCourseInvalidPlacementID
-		}
-		merged.PlacementID = *patch.PlacementID
-	}
 	if patch.SemesterID != nil {
 		if *patch.SemesterID <= 0 {
 			return errs.ErrCourseInvalidSemestreID
 		}
 		merged.SemesterID = *patch.SemesterID
-		if merged.PlacementID <= 0 {
-			return errs.ErrCourseInvalidPlacementID
-		}
 	}
 	if patch.IsOptional != nil {
 		merged.IsOptional = *patch.IsOptional
@@ -102,9 +81,6 @@ func (s *CourseService) Update(ctx context.Context, patch models.CoursePatch, id
 
 	if merged.Name == "" || merged.Code == "" {
 		return errs.ErrCourseCodeAndNameRequired
-	}
-	if merged.PlacementID > 0 && merged.SemesterID <= 0 {
-		return errs.ErrCourseInvalidSemestreID
 	}
 
 	if err := s.repo.Update(ctx, merged, id); err != nil {

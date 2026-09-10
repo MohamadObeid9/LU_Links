@@ -1,9 +1,9 @@
 ---
 name: browse-cnam-courses
-description: Find CNAM Liban course materials on Info Links via content API or SEO pages. Use when a student needs TD, exams, sessions, or Drive/Telegram links for a course code.
+description: Find Lebanese University course materials on LU Links via content API or SEO pages. Use when a student needs TD, exams, sessions, or Drive/Telegram links for a course code.
 ---
 
-# Browse CNAM Courses
+# Browse LU Courses
 
 ## Prefer machine-readable content
 
@@ -12,7 +12,7 @@ GET /api/content
 Accept: application/json
 ```
 
-Walk `programs` → `years` → `semesters` → `courses` → `links`. Match by `code` (e.g. `nfa008`) or course name.
+Walk `faculties` → branches / specialisations → years → semesters → `courses` → `links`. Match by `code` or course name. Each campus×specialisation offering has its own course rows.
 
 ## SEO / markdown pages
 
@@ -22,7 +22,7 @@ Agents that prefer stripped text:
 GET /courses
 Accept: text/markdown
 
-GET /course/nfa008
+GET /course/{code}
 Accept: text/markdown
 ```
 
@@ -36,4 +36,4 @@ HTML is the default without that Accept header. Course markdown includes YAML fr
 
 ## Contribute
 
-Registered students can `POST /api/reports`, `/api/feedback`, or `/api/contributions` when a link is wrong or missing.
+Registered students can `POST /api/reports`, `/api/feedback`, `/api/suggestions`, or `/api/contributions` when a link is wrong or missing, or when suggesting a product improvement.

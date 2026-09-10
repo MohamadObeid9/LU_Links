@@ -12,13 +12,13 @@ func (h *Handler) handleMCPServerCard(w http.ResponseWriter, r *http.Request) {
 		"version":         "1.0",
 		"protocolVersion": "2025-06-18",
 		"serverInfo": map[string]any{
-			"name":        "info-links",
-			"title":       "Info Links",
+			"name":        "lu-links",
+			"title":       "LU Links",
 			"version":     "1.0.0",
-			"description": "CNAM Liban student materials hub — browse courses and shared links via MCP tools backed by the Info Links HTTP API.",
+			"description": "Lebanese University course materials hub — browse courses and shared links via MCP tools backed by the LU Links HTTP API.",
 			"homepage":    base + "/",
 		},
-		"description":      "Discover CNAM course materials, student auth, and analytics endpoints for Info Links.",
+		"description":      "Discover Lebanese University course materials, student auth, and analytics endpoints for LU Links.",
 		"documentationUrl": h.absURL("/api/docs"),
 		"iconUrl":          h.absURL("/web-app-manifest-192x192.png"),
 		"transport": map[string]any{

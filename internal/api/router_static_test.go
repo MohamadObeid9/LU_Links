@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	"infolinks-backend/internal/config"
+	"lu-links/internal/config"
 )
 
 func testStaticRouter(t *testing.T) http.Handler {
@@ -88,7 +88,7 @@ func TestStaticHandler_markdownNegotiation(t *testing.T) {
 	if rr.Header().Get("x-markdown-tokens") == "" {
 		t.Fatal("missing x-markdown-tokens")
 	}
-	if !strings.Contains(rr.Body.String(), "# Info Links") {
+	if !strings.Contains(rr.Body.String(), "# LU Links") {
 		t.Fatalf("body: %s", rr.Body.String())
 	}
 }

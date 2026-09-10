@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"infolinks-backend/internal/repository"
+	"lu-links/internal/repository"
 )
 
 func sampleCoursePageData() *repository.CoursePageData {
@@ -53,7 +53,7 @@ func TestBuildCourseDescription(t *testing.T) {
 	if !strings.Contains(desc, "NFA008") {
 		t.Fatalf("description missing code: %q", desc)
 	}
-	if !strings.Contains(desc, "CNAM Liban") {
+	if !strings.Contains(desc, "Université Libanaise") && !strings.Contains(desc, "LU Links") {
 		t.Fatalf("description missing institution: %q", desc)
 	}
 	if len(desc) > 160 {

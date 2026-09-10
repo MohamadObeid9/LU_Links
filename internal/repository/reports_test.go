@@ -8,8 +8,8 @@ import (
 
 	"github.com/DATA-DOG/go-sqlmock"
 
-	"infolinks-backend/internal/errs"
-	"infolinks-backend/internal/models"
+	"lu-links/internal/errs"
+	"lu-links/internal/models"
 )
 
 func newTestReportRepo(t *testing.T) (ReportRepository, sqlmock.Sqlmock) {

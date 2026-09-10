@@ -7,8 +7,8 @@ import (
 	"reflect"
 	"testing"
 
-	"infolinks-backend/internal/errs"
-	"infolinks-backend/internal/repository"
+	"lu-links/internal/errs"
+	"lu-links/internal/repository"
 )
 
 type fakeSEORepo struct {

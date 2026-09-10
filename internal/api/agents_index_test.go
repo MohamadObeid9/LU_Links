@@ -32,9 +32,9 @@ func TestHandleAgentsIndex(t *testing.T) {
 	if !ok {
 		t.Fatalf("agents: %#v", doc["agents"])
 	}
-	entry, ok := agents["info-links"].(map[string]any)
+	entry, ok := agents["lu-links"].(map[string]any)
 	if !ok {
-		t.Fatalf("info-links: %#v", agents)
+		t.Fatalf("lu-links: %#v", agents)
 	}
 	loc, ok := entry["location"].(map[string]any)
 	if !ok {

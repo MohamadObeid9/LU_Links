@@ -1,4 +1,37 @@
 // ===================== STATE =====================
+
+function migrateLegacyStorageKeys() {
+  const map = [
+    ["infolinks_token", "lu_links_token"],
+    ["infolinks_student_token", "lu_links_student_token"],
+    ["infolinks_student_uid", "lu_links_student_uid"],
+  ];
+  for (const [from, to] of map) {
+    if (!localStorage.getItem(to)) {
+      const v = localStorage.getItem(from);
+      if (v) localStorage.setItem(to, v);
+    }
+    localStorage.removeItem(from);
+  }
+  // Rename per-user favorites caches.
+  for (let i = localStorage.length - 1; i >= 0; i--) {
+    const key = localStorage.key(i);
+    if (!key || !key.startsWith("infolinks_favorites")) continue;
+    const next = key.replace(/^infolinks_favorites/, "lu_links_favorites");
+    if (!localStorage.getItem(next)) {
+      localStorage.setItem(next, localStorage.getItem(key));
+    }
+    localStorage.removeItem(key);
+  }
+  // Drop obsolete cache keys.
+  localStorage.removeItem("infolinks_data");
+  localStorage.removeItem("infolinks_cache_ts");
+  localStorage.removeItem("infolinks_mobile_browse");
+  localStorage.removeItem("lu_links_data");
+  localStorage.removeItem("lu_links_cache_ts");
+}
+migrateLegacyStorageKeys();
+
 // All mutable application state lives here as a single object.
 // Access via AppState.xxx; mutate directly: AppState.xxx = yyy.
 
@@ -12,15 +45,15 @@ function _isTokenValid(token) {
   }
 }
 
-const _rawToken = localStorage.getItem("infolinks_token");
+const _rawToken = localStorage.getItem("lu_links_token");
 const _validToken = _isTokenValid(_rawToken) ? _rawToken : null;
-if (_rawToken && !_validToken) localStorage.removeItem("infolinks_token");
+if (_rawToken && !_validToken) localStorage.removeItem("lu_links_token");
 
 // Student session token — completely separate from the admin token above.
-const STUDENT_TOKEN_KEY = "infolinks_student_token";
+const STUDENT_TOKEN_KEY = "lu_links_student_token";
 // Last known registered student id, so the favorites cache can paint before
 // GET /api/users/me resolves.
-const STUDENT_UID_KEY = "infolinks_student_uid";
+const STUDENT_UID_KEY = "lu_links_student_uid";
 const _rawStudentToken = localStorage.getItem(STUDENT_TOKEN_KEY);
 const _validStudentToken = _isTokenValid(_rawStudentToken) ? _rawStudentToken : null;
 if (_rawStudentToken && !_validStudentToken) {
@@ -41,17 +74,30 @@ const AppState = {
   currentAdminTab: "courses",
   adminSearch: "",
   adminFilterProg: "all",
+  adminFilterFaculty: "all",
+  adminFilterBranch: "all",
   adminFilterYear: "all",
   adminFilterSem: "all",
+  adminStructStep: "faculties", // faculties | faculty | offering | branches
+  adminStructFacultyId: null,
+  adminStructOfferingId: null,
+  adminStructCache: null,
   _pendingCourseEdit: null,
   _pendingLinkOp: null,
   isDark: false,
+  themePref: "system",
+  langPref: "eng",
   currentProg: null,
   currentYear: "all",
   currentSem: "all",
+  // Faculties drill-down: null | facultyId selected; branch/spec via currentProg offering id.
+  currentFacultyId: null,
+  currentBranchId: null,
+  facultyNavStep: "faculties", // faculties | branches | specialisations | courses
   // Phone browse: "program" picker, "year" (year+semester), or "list".
   mobileStep: "program",
   dbPrograms: [],
+  dbFaculties: [],
   analyticsRange: "30",
   analyticsChartSeries: "visitors",
   analyticsVisitorsSort: "clicks",
@@ -75,12 +121,12 @@ const AppState = {
 // Favorites live server-side; localStorage is only a per-user cache so the star
 // state paints instantly on reload. The legacy shared key is dropped so one
 // student never inherits another's favorites on the same browser.
-localStorage.removeItem("infolinks_favorites");
-localStorage.removeItem("infolinks_mobile_browse");
+localStorage.removeItem("lu_links_favorites");
+localStorage.removeItem("lu_links_mobile_browse");
 
 function _favoritesCacheKey() {
   const id = AppState.studentUser?.id ?? AppState.studentUserId;
-  return id ? `infolinks_favorites_u${id}` : null;
+  return id ? `lu_links_favorites_u${id}` : null;
 }
 
 function saveFavorites() {

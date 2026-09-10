@@ -2,17 +2,32 @@ import "./js/state.js";
 import "./js/cache.js";
 import "./js/supabase.js";
 import "./js/skeleton.js";
+import "./js/i18n.js";
+import { initPreferences } from "./js/prefs.js";
 import "./js/ui.js";
+import "./js/hierarchy-picker.js";
 import "./js/home.js";
 import "./js/mobile-home.js";
 import "./js/data.js";
 import "./js/feedback.js";
+import "./js/suggestions.js";
 import "./js/export.js";
 import "./js/admin.js";
 import "./js/views.js";
 import "./js/modals.js";
 import "./js/session.js";
 import { initWebMCP } from "./js/webmcp.js";
+
+initPreferences();
+
+function updateFooterYear() {
+  const el = document.getElementById("footerYear");
+  if (!el) return;
+  const start = 2026;
+  const now = new Date().getFullYear();
+  el.textContent = now > start ? `${start} – ${now}` : String(start);
+}
+updateFooterYear();
 
 // --- EVENT ROUTER (Professional Event Delegation) ---
 document.addEventListener("click", (e) => {
@@ -40,6 +55,16 @@ document.addEventListener("click", (e) => {
     return;
   }
 
+  // Expand/collapse course links (lazy paint of link rows).
+  if (!target.closest(".fav-btn, .link-item, .copy-btn")) {
+    const header = target.closest("[data-toggle-course]");
+    if (header) {
+      e.preventDefault();
+      window.toggleCourseCard?.(header.dataset.toggleCourse);
+      return;
+    }
+  }
+
   const footerExternal = target.closest(".footer-external-link");
   if (footerExternal) {
     e.preventDefault();
@@ -63,6 +88,15 @@ document.addEventListener("click", (e) => {
     return;
   }
 
+  if (!target.closest(".fav-btn, .copy-btn, .hint-link")) {
+    const courseHeader = target.closest("[data-toggle-course]");
+    if (courseHeader) {
+      e.preventDefault();
+      window.toggleCourseCard?.(courseHeader.dataset.toggleCourse);
+      return;
+    }
+  }
+
   const view = target.closest("[data-view]")?.dataset.view;
   if (view) {
     window.showView(view);
@@ -78,6 +112,9 @@ document.addEventListener("click", (e) => {
       case "toggleTheme":
         window.toggleTheme();
         break;
+      case "cycleLang":
+        window.cycleLang();
+        break;
       case "toggleFilters":
         window.toggleFilters();
         break;
@@ -89,6 +126,9 @@ document.addEventListener("click", (e) => {
         break;
       case "submitFeedback":
         window.submitFeedback();
+        break;
+      case "submitSuggestion":
+        window.submitSuggestion();
         break;
       case "logout":
         window.logout();
@@ -131,9 +171,6 @@ document.addEventListener("click", (e) => {
 document.addEventListener("input", (e) => {
   if (e.target.id === "searchInput") {
     window.onSearch();
-  }
-  if (e.target.id === "rCourse") {
-    window.onReportCourseChange();
   }
 });
 

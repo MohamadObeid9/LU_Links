@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"infolinks-backend/internal/webbotauth"
+	"lu-links/internal/webbotauth"
 )
 
 func TestDirectoryJWKSContainsEd25519Key(t *testing.T) {

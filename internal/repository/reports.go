@@ -5,8 +5,8 @@ import (
 	"database/sql"
 	"fmt"
 
-	"infolinks-backend/internal/errs"
-	"infolinks-backend/internal/models"
+	"lu-links/internal/errs"
+	"lu-links/internal/models"
 )
 
 type postgresReportRepository struct {
@@ -34,6 +34,9 @@ func (r *postgresReportRepository) Delete(ctx context.Context, id int) error {
 
 func (r *postgresReportRepository) Create(ctx context.Context, report models.Report) error {
 	if _, err := r.db.ExecContext(ctx, insertReportQuery, report.CourseName, report.LinkURL, report.Description, report.UserID); err != nil {
+		if isForeignKeyViolation(err) {
+			return errs.ErrUserNotFound
+		}
 		return fmt.Errorf("insert report: %w", err)
 	}
 	return nil

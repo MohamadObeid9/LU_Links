@@ -7,9 +7,9 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"infolinks-backend/internal/errs"
-	"infolinks-backend/internal/models"
-	"infolinks-backend/internal/service"
+	"lu-links/internal/errs"
+	"lu-links/internal/models"
+	"lu-links/internal/service"
 )
 
 type fakeAnalyticsService struct {

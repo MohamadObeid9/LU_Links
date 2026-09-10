@@ -1,14 +1,16 @@
 #!/usr/bin/env bash
 #
-# Publish DNS-AID (DNS for AI Discovery) records for infolinks.app via Cloudflare API v4.
+# Publish DNS-AID (DNS for AI Discovery) records via Cloudflare API v4.
+# Default ZONE is still infolinks.app (the Cloudflare zone that holds these RRsets).
+# Public site is https://lu-links.onrender.com/ — see dns/dns-aid.zone header.
 # Zonefile mirror: dns/dns-aid.zone
 #
 # Records (idempotent upsert — create or update):
 #   _index._agents                SVCB + HTTPS + TXT
 #   _a2a._agents                  SVCB + HTTPS
 #   _mcp._agents                  SVCB + HTTPS
-#   info-links._a2a._agents       SVCB + HTTPS
-#   info-links._mcp._agents       SVCB + HTTPS
+#   lu-links._a2a._agents       SVCB + HTTPS
+#   lu-links._mcp._agents       SVCB + HTTPS
 #
 # Usage:
 #   CLOUDFLARE_API_TOKEN=... ./scripts/publish-dns-aid.sh
@@ -154,11 +156,11 @@ for rrtype in SVCB HTTPS; do
   upsert_svcb_like "${rrtype}" "_index._agents" "${INDEX_VALUE}"
   upsert_svcb_like "${rrtype}" "_a2a._agents" "${A2A_VALUE}"
   upsert_svcb_like "${rrtype}" "_mcp._agents" "${MCP_VALUE}"
-  upsert_svcb_like "${rrtype}" "info-links._a2a._agents" "${A2A_VALUE}"
-  upsert_svcb_like "${rrtype}" "info-links._mcp._agents" "${MCP_VALUE}"
+  upsert_svcb_like "${rrtype}" "lu-links._a2a._agents" "${A2A_VALUE}"
+  upsert_svcb_like "${rrtype}" "lu-links._mcp._agents" "${MCP_VALUE}"
 done
 
-upsert_txt "_index._agents" "agents=info-links:a2a,info-links:mcp"
+upsert_txt "_index._agents" "agents=lu-links:a2a,lu-links:mcp"
 
 if [[ "${ENABLE_DNSSEC:-0}" == "1" ]]; then
   echo "→ Enabling DNSSEC on the zone…"

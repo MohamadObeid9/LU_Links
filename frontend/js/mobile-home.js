@@ -1,5 +1,18 @@
 import { AppState } from "./state.js";
-import { esc, isMobileView, _buildCourseCard, getLinkBadge, getContentTypeChips, _linkHref, collectFavoriteCourses, setSectionHint, tipsSectionHtml, FAVORITES_HINT_CARD } from "./ui.js";
+import {
+  esc,
+  isMobileView,
+  _buildCourseCard,
+  getLinkBadge,
+  getContentTypeChips,
+  _linkHref,
+  collectFavoriteCourses,
+  setSectionHint,
+  tipsSectionHtml,
+  homeSectionHeading,
+  FAVORITES_HINT_CARD,
+} from "./ui.js";
+import { t } from "./i18n.js";
 
 const MOBILE_MQ = "(max-width: 768px)";
 
@@ -39,11 +52,19 @@ function showExtraOnly() {
   if (extra) extra.style.display = "";
 }
 
-function chipsHtml(labels, backStep) {
+/** @param {Array<string|{label:string, crumb?:string}>} entries */
+function chipsHtml(entries, changeBackStep) {
+  const chips = entries
+    .map((e) => {
+      const label = typeof e === "string" ? e : e.label;
+      const crumb = typeof e === "string" ? changeBackStep : e.crumb || changeBackStep;
+      return `<button type="button" class="mobile-chip" data-mobile-back="${esc(crumb)}">${esc(label)}</button>`;
+    })
+    .join("");
   return `
     <div class="mobile-chips">
-      ${labels.map((l) => `<span class="mobile-chip">${esc(l)}</span>`).join("")}
-      <button type="button" class="mobile-chip-change" data-mobile-back="${backStep}">Change</button>
+      ${chips}
+      <button type="button" class="mobile-chip-change" data-mobile-back="${esc(changeBackStep)}">${esc(t("mobile_change"))}</button>
     </div>`;
 }
 
@@ -76,95 +97,89 @@ function extraCardsHtml(sections) {
                   ${getLinkBadge(l.type)}
                   <span class="link-label">${esc(l.label)}</span>
                   ${l.note ? `<span class="link-note">${esc(l.note)}</span>` : ""}
-                  <button class="copy-btn" title="Copy link"
-                    aria-label="Copy link">⎘</button>
+                  <button class="copy-btn" title="${esc(t("copy_link"))}"
+                    aria-label="${esc(t("copy_link"))}">⎘</button>
                 </span>
                 ${getContentTypeChips(l.content_type)}
               </a>`,
             )
             .join("")
-          : '<span class="no-links">No links yet — contribute!</span>'}
+          : `<span class="no-links">${esc(t("no_links_yet"))}</span>`}
           </div>
         </div>`,
     )
     .join("");
 }
 
-function collectSearchHits(q) {
-  const hits = [];
-  AppState.dbPrograms.forEach((p) =>
-    p.years.forEach((y) =>
-      y.sems.forEach((s) =>
-        s.courses.forEach((c) => {
-          if (
-            c.name.toLowerCase().includes(q) ||
-            c.code.toLowerCase().includes(q)
-          ) {
-            hits.push({ course: c, path: `${p.name} · ${y.name} · ${s.name}` });
-          }
-        }),
-      ),
-    ),
-  );
-  return hits;
-}
-
-function renderMobileSearch(q) {
+async function renderMobileSearch(q) {
   hideExtra();
   setSectionHint("");
-  const hits = collectSearchHits(q);
-  const extras = extraMatches(q);
-  let html = `<div class="mobile-section-label">${hits.length} course${hits.length === 1 ? "" : "s"}</div>`;
-  html += hits.length
-    ? `<div class="courses-grid">${hits.map((h) => _buildCourseCard(h.course, { path: h.path })).join("")}</div>`
-    : '<div class="empty">No course matches that. Try a code like NFA035.</div>';
-  if (extras.length) {
-    html += `<div class="mobile-section-label">Extra resources</div>${extraCardsHtml(extras)}`;
+  const out = document.getElementById("coursesOutput");
+  out.innerHTML =
+    `<div class="loader"><div class="spinner"></div> ${esc(t("searching"))}</div>`;
+  try {
+    const rows = window.searchCourses ? await window.searchCourses(q, 50) : [];
+    // Ignore stale results if the query changed while awaiting.
+    const still =
+      (document.getElementById("searchInput")?.value || "").trim() === q;
+    if (!still) return;
+
+    const extras = extraMatches(q.toLowerCase());
+    const courseCountKey = rows.length === 1 ? "mobile_courses_one" : "mobile_courses_many";
+    let html = `<div class="mobile-section-label">${esc(t(courseCountKey, { n: rows.length }))}</div>`;
+    html += rows.length
+      ? `<div class="courses-grid">${rows
+          .map((c) => {
+            const course = { ...c, links: Array.isArray(c.links) ? c.links : [] };
+            return _buildCourseCard(course, { path: c.path || "" });
+          })
+          .join("")}</div>`
+      : `<div class="empty">${esc(t("mobile_search_empty"))}</div>`;
+    if (extras.length) {
+      html += `<div class="mobile-section-label">${esc(t("mobile_extra_label"))}</div>${extraCardsHtml(extras)}`;
+    }
+    out.innerHTML = html;
+  } catch (e) {
+    out.innerHTML = `<div class="empty">⚠️ ${esc(e.message || t("search_failed"))}</div>`;
   }
-  document.getElementById("coursesOutput").innerHTML = html;
 }
 
 function renderMobileProgramPicker() {
   hideExtra();
   setSectionHint("");
-  const programs = AppState.dbPrograms
-    .map(
-      (p) => `
-        <button type="button" class="pick-card" data-mobile-prog="${p.id}">
-          <span>
-            <span class="pick-title">${esc(p.name)}</span>
-            <small>${p.years.length} year${p.years.length === 1 ? "" : "s"}</small>
-          </span>
-          <span class="pick-chev">›</span>
-        </button>`,
-    )
-    .join("");
 
   document.getElementById("coursesOutput").innerHTML = `
-    <p class="mobile-hint">Search if you know the code — or pick your program to browse this semester.</p>
-    <div class="mobile-section-label">Your program</div>
-    ${programs}
+    <p class="mobile-hint">${esc(t("mobile_hub_hint"))}</p>
+    <div class="pick-grid">
+    <button type="button" class="pick-card" data-mobile-prog="faculties">
+      <span>
+        <span class="pick-title">${esc(t("tab_faculties"))}</span>
+        <small>${esc(t("mobile_pick_faculties_sub"))}</small>
+      </span>
+      <span class="pick-chev">›</span>
+    </button>
     <button type="button" class="pick-card" data-mobile-prog="extra">
       <span>
-        <span class="pick-title">📦 Extra resources</span>
-        <small>Outside the course tree</small>
+        <span class="pick-title">📦 ${esc(t("mobile_extra_label"))}</span>
+        <small>${esc(t("mobile_pick_extra_sub"))}</small>
       </span>
       <span class="pick-chev">›</span>
     </button>
     <button type="button" class="pick-card" data-mobile-prog="favorites">
       <span>
-        <span class="pick-title">⭐ My Courses</span>
-        <small>Saved on this account</small>
+        <span class="pick-title">${esc(t("my_courses"))}</span>
+        <small>${esc(t("mobile_pick_favorites_sub"))}</small>
       </span>
       <span class="pick-chev">›</span>
     </button>
     <button type="button" class="pick-card" data-mobile-prog="tips">
       <span>
-        <span class="pick-title">💡 Tips</span>
-        <small>How to use Info Links and how you can help</small>
+        <span class="pick-title">${esc(t("tips_title"))}</span>
+        <small>${esc(t("mobile_pick_tips_sub"))}</small>
       </span>
       <span class="pick-chev">›</span>
-    </button>`;
+    </button>
+    </div>`;
 }
 
 function renderMobileYearPicker() {
@@ -188,13 +203,22 @@ function renderMobileYearPicker() {
       return `
         <div class="mobile-year-block">
           <h3>${esc(y.name)}</h3>
-          <div class="mobile-sem-row">${sems || '<p class="mobile-hint">No semesters yet.</p>'}</div>
+          <div class="mobile-sem-row">${sems || `<p class="mobile-hint">${esc(t("no_semesters"))}</p>`}</div>
         </div>`;
     })
     .join("");
 
+  const backStep =
+    AppState.currentFacultyId && AppState.currentBranchId
+      ? "specialisations"
+      : "program";
+  const backLabel =
+    backStep === "specialisations"
+      ? t("back_specialisations")
+      : `← ${t("nav_home")}`;
+
   document.getElementById("coursesOutput").innerHTML = `
-    <button type="button" class="mobile-back" data-mobile-back="program">← Programs</button>
+    <button type="button" class="mobile-back" data-mobile-back="${backStep}">${esc(backLabel)}</button>
     <div class="mobile-section-label">${esc(prog.name)}</div>
     ${years}`;
 }
@@ -211,27 +235,40 @@ function renderMobileList() {
     return;
   }
 
+  const canSpecs =
+    (AppState.currentFacultyId ?? prog.faculty_id) != null &&
+    (AppState.currentBranchId ?? prog.branch_id) != null;
   const courseCards = (sem.courses || []).map((c) => _buildCourseCard(c));
   document.getElementById("coursesOutput").innerHTML = `
-    ${chipsHtml([prog.name, year.name, sem.name], "year")}
+    ${chipsHtml(
+      [
+        { label: prog.name, crumb: canSpecs ? "specialisations" : "program" },
+        { label: year.name, crumb: "year" },
+        { label: sem.name, crumb: "year" },
+      ],
+      "year",
+    )}
     ${courseCards.length
       ? `<div class="courses-grid">${courseCards.join("")}</div>`
-      : '<div class="empty">No courses in this semester — try another, or search.</div>'}`;
+      : `<div class="empty">${esc(t("mobile_sem_empty"))}</div>`}`;
 }
 
 function renderMobileFavorites() {
   hideExtra();
-  setSectionHint(FAVORITES_HINT_CARD);
+  setSectionHint(FAVORITES_HINT_CARD());
+  const head =
+    chipsHtml([t("my_courses").replace(/^⭐\s*/, "")], "program") +
+    homeSectionHeading(esc(t("my_courses")));
   if (!window.isRegisteredStudent?.() && !AppState.adminLoggedIn) {
     document.getElementById("coursesOutput").innerHTML =
-      chipsHtml(["My Courses"], "program") +
-      '<div class="empty">Sign up to save courses here — it takes a name and a number.</div>';
+      head +
+      `<div class="empty">${esc(t("fav_signup_empty"))}</div>`;
     return;
   }
   if (AppState.favorites.size === 0) {
     document.getElementById("coursesOutput").innerHTML =
-      chipsHtml(["My Courses"], "program") +
-      '<div class="empty">No favorites yet — tap ★ on a course to save it here.</div>';
+      head +
+      `<div class="empty">${esc(t("fav_empty_tap"))}</div>`;
     return;
   }
 
@@ -241,10 +278,10 @@ function renderMobileFavorites() {
   );
 
   document.getElementById("coursesOutput").innerHTML = `
-    ${chipsHtml(["My Courses"], "program")}
+    ${head}
     ${cards.length
       ? `<div class="courses-grid">${cards.join("")}</div>`
-      : '<div class="empty">No matching favorites found.</div>'}`;
+      : `<div class="empty">${esc(t("fav_no_match"))}</div>`}`;
 }
 
 function renderMobileTips() {
@@ -252,8 +289,8 @@ function renderMobileTips() {
   setSectionHint("");
   document.getElementById("coursesOutput").innerHTML = `
     <div class="tips-page">
-    ${chipsHtml(["Tips"], "program")}
-    <h2 class="tips-title"><span class="tips-title-emoji" aria-hidden="true">💡</span> Tips</h2>
+    ${chipsHtml([t("chip_tips")], "program")}
+    ${homeSectionHeading(esc(t("tips_title")))}
     ${tipsSectionHtml()}
     </div>`;
 }
@@ -266,21 +303,15 @@ function renderMobileExtra() {
   window.renderExtra();
   const extra = document.getElementById("extraSection");
   if (!extra) return;
-  extra.insertAdjacentHTML("afterbegin", chipsHtml(["Extra resources"], "program"));
-  if (!extra.querySelector(".extra-section")) {
-    extra.insertAdjacentHTML(
-      "beforeend",
-      '<div class="empty">No extra resources yet.</div>',
-    );
-  }
+  extra.insertAdjacentHTML("afterbegin", chipsHtml([t("chip_extra")], "program"));
 }
 
 function renderMobileHome() {
   if (!isMobileView()) return false;
 
-  const q = searchQuery();
+  const q = (document.getElementById("searchInput")?.value || "").trim();
   if (q) {
-    renderMobileSearch(q);
+    void renderMobileSearch(q);
     return true;
   }
 
@@ -343,6 +374,15 @@ function selectMobileProg(id) {
     renderMobileFavorites();
     return;
   }
+  if (id === "faculties") {
+    AppState.mobileStep = "list";
+    AppState.facultyNavStep = "faculties";
+    AppState.currentFacultyId = null;
+    AppState.currentBranchId = null;
+    window.renderProgTabs?.();
+    window.renderFacultyBrowser?.();
+    return;
+  }
 
   AppState.mobileStep = "year";
   window.trackBrowse?.("year");
@@ -358,8 +398,20 @@ function selectMobileSem(yearId, semId) {
 }
 
 function mobileBrowseBack(step) {
+  if (step === "specialisations") {
+    const prog = findProgram(AppState.currentProg);
+    const facultyId = AppState.currentFacultyId ?? prog?.faculty_id;
+    const branchId = AppState.currentBranchId ?? prog?.branch_id;
+    if (facultyId != null && branchId != null) {
+      window.selectFacultyBranch?.(facultyId, branchId);
+      return;
+    }
+    window.selectProg?.("faculties");
+    return;
+  }
   if (step === "program") {
-    AppState.currentProg = "all";
+    AppState.currentProg = "faculties";
+    AppState.facultyNavStep = "faculties";
     AppState.currentYear = "all";
     AppState.currentSem = "all";
     AppState.mobileStep = "program";
@@ -385,7 +437,8 @@ function toggleCourseCard(courseId) {
 
 function initMobileHomeState() {
   if (!isMobileView()) return;
-  AppState.currentProg = "all";
+  AppState.currentProg = "faculties";
+  AppState.facultyNavStep = "faculties";
   AppState.currentYear = "all";
   AppState.currentSem = "all";
   AppState.mobileStep = "program";
@@ -403,11 +456,11 @@ function onMobileViewportChange() {
     renderMobileHome();
     return;
   }
-  if (!AppState.currentProg) AppState.currentProg = "all";
+  if (!AppState.currentProg) AppState.currentProg = "faculties";
   if (AppState.currentYear == null) AppState.currentYear = "all";
   if (AppState.currentSem == null) AppState.currentSem = "all";
   if (AppState.mobileStep === "program" || AppState.mobileStep === "year") {
-    if (!isRealProgram(AppState.currentProg)) AppState.currentProg = "all";
+    if (!isRealProgram(AppState.currentProg)) AppState.currentProg = "faculties";
     AppState.currentYear = "all";
     AppState.currentSem = "all";
   }

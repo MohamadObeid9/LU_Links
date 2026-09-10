@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"infolinks-backend/internal/errs"
+	"lu-links/internal/errs"
 
 	"github.com/DATA-DOG/go-sqlmock"
 )

@@ -19,6 +19,7 @@ Project history and planned work.
 | **Phase 9** | Student identity without passwords, synced favorites, and unique-user analytics |
 | **Phase 10** | Agent/API discovery, graceful shutdown, integration tests, Cloudflare cache |
 | **Phase 11** | Origin in-memory `/api/content` cache (`singleflight`); k6 origin p95 1.53 ms (was 4.91 s) |
+| **Phase 12** | LU academic hierarchy, suggestions inbox, student UI i18n (eng / fr / ar + RTL) |
 
 ---
 
@@ -26,7 +27,9 @@ Project history and planned work.
 
 - [x] Advanced filtering and categorization
 - [x] Personalized bookmarks (My Courses / Favorites)
-- [ ] Multi-language support
+- [x] Multi-language support (UI prefs: eng / fr / ar; theme: system / light / dark; Arabic RTL)
+- [x] Lebanese University hierarchy (faculty → campus → specialisation offerings)
+- [x] Suggestions inbox (alongside feedback)
 - [x] Community rating system for resources (Feedback)
 - [x] Offline mode support (PWA / Service Worker)
 - [x] Production Go backend with tests and observability

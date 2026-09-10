@@ -3,9 +3,9 @@ package app
 import (
 	"database/sql"
 
-	"infolinks-backend/internal/api"
-	"infolinks-backend/internal/repository"
-	"infolinks-backend/internal/service"
+	"lu-links/internal/api"
+	"lu-links/internal/repository"
+	"lu-links/internal/service"
 )
 
 // Wire builds repository-backed services for production and integration tests.
@@ -28,6 +28,9 @@ func Wire(db *sql.DB) (api.Dependencies, *service.UserService) {
 	feedbackRepo := repository.NewPostgresFeedbackRepository(db)
 	feedbackService := service.NewFeedbackService(feedbackRepo)
 
+	suggestionRepo := repository.NewPostgresSuggestionRepository(db)
+	suggestionService := service.NewSuggestionService(suggestionRepo)
+
 	contentRepo := repository.NewPostgresContentRepository(db)
 	contentService := service.NewContentService(contentRepo)
 
@@ -46,6 +49,9 @@ func Wire(db *sql.DB) (api.Dependencies, *service.UserService) {
 	extraLinkRepo := repository.NewPostgresExtraLinkRepository(db)
 	extraLinkService := service.NewExtraLinkService(extraLinkRepo)
 
+	hierarchyRepo := repository.NewPostgresHierarchyRepository(db)
+	hierarchyService := service.NewHierarchyService(hierarchyRepo)
+
 	return api.Dependencies{
 		UserService:         userService,
 		AnalyticsService:    analyticsService,
@@ -54,10 +60,12 @@ func Wire(db *sql.DB) (api.Dependencies, *service.UserService) {
 		ReportService:       reportService,
 		ContentService:      contentService,
 		FeedbackService:     feedbackService,
+		SuggestionService:   suggestionService,
 		PageViewService:     pageViewService,
 		LinkClickService:    linkClickService,
 		ContributionService: contributionsService,
 		ExtraSectionService: extraSectionService,
 		ExtraLinkService:    extraLinkService,
+		HierarchyService:    hierarchyService,
 	}, userService
 }

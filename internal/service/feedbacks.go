@@ -6,9 +6,9 @@ import (
 	"strconv"
 	"strings"
 
-	"infolinks-backend/internal/errs"
-	"infolinks-backend/internal/models"
-	"infolinks-backend/internal/repository"
+	"lu-links/internal/errs"
+	"lu-links/internal/models"
+	"lu-links/internal/repository"
 )
 
 type FeedbackService struct {
@@ -27,7 +27,7 @@ func (s *FeedbackService) Create(ctx context.Context, feedback models.Feedback) 
 	}
 
 	switch feedback.Category {
-	case "ui/ux", "content", "functionality", "performance", "accessibility":
+	case "ui/ux", "content", "functionality", "performance", "accessibility", "other":
 	default:
 		return errs.ErrFeedbackInvalidCategory
 	}

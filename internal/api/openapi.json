@@ -1,8 +1,8 @@
 {
   "openapi": "3.1.0",
   "info": {
-    "title": "Info Links API",
-    "description": "Public HTTP API for Info Links \u2014 CNAM Liban student course materials hub. Browse content, student identity, analytics events, and submissions.",
+    "title": "LU Links API",
+    "description": "Public HTTP API for LU Links \u2014 Lebanese University student course materials hub. Browse content, student identity, analytics events, and submissions.",
     "version": "1.0.0"
   },
   "servers": [
@@ -313,6 +313,25 @@
         ],
         "summary": "Submit feedback",
         "operationId": "postFeedback",
+        "security": [
+          {
+            "studentBearer": []
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Created"
+          }
+        }
+      }
+    },
+    "/api/suggestions": {
+      "post": {
+        "tags": [
+          "submissions"
+        ],
+        "summary": "Submit a site improvement suggestion",
+        "operationId": "postSuggestion",
         "security": [
           {
             "studentBearer": []

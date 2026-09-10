@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"infolinks-backend/internal/repository"
+	"lu-links/internal/repository"
 )
 
 type SEOService struct {

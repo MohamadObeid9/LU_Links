@@ -30,7 +30,7 @@ func TestHandleAgentCard(t *testing.T) {
 			t.Fatalf("missing %s", key)
 		}
 	}
-	if doc["name"] != "Info Links" {
+	if doc["name"] != "LU Links" {
 		t.Fatalf("name: %#v", doc["name"])
 	}
 	ifaces, ok := doc["supportedInterfaces"].([]any)

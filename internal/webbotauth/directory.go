@@ -29,7 +29,7 @@ func NewDirectory(seed, siteBaseURL string) (*Directory, error) {
 	if seed == "" {
 		return nil, fmt.Errorf("web bot auth seed is required")
 	}
-	sum := sha256.Sum256([]byte("infolinks-web-bot-auth-v1:" + seed))
+	sum := sha256.Sum256([]byte("lu-links-web-bot-auth-v1:" + seed))
 	priv := ed25519.NewKeyFromSeed(sum[:])
 	pub := priv.Public().(ed25519.PublicKey)
 

@@ -1,12 +1,13 @@
 import { AppState } from "./state.js";
 import { sb, sbAuth, sbLogout, apiRequest } from "./supabase.js";
-import { esc, setBtnLoading, getLinkBadge, getContentTypeChips, adminCell, isMobileView } from "./ui.js";
+import { esc, setBtnLoading, getLinkBadge, getContentTypeChips, getLanguageChips, adminCell, adminLongText, isMobileView } from "./ui.js";
 import { getAdminTableSkeleton, getAdminAnalyticsSkeleton } from "./skeleton.js";
 import { loadAll, loadReportsBadges } from "./data.js";
 import { _clearCache } from "./cache.js";
 import { showToast } from "./export.js";
 import { renderAdminFeedback } from "./feedback.js";
-import { _linkTypeOptions, _contentTypeCheckboxes, _readContentTypeCheckboxes, _getNextDisplayOrder } from "./modals.js";
+import { renderAdminSuggestions } from "./suggestions.js";
+import { _linkTypeOptions, _contentTypeCheckboxes, _readContentTypeCheckboxes, _languageCheckboxes, _readLanguageCheckboxes, parseContributionNote, _getNextDisplayOrder } from "./modals.js";
 import { loadStudentDirectory, rememberStudents, senderDetail, studentHandleOf, fmtDateTime } from "./students.js";
 
 // ===================== ADMIN AUTH =====================
@@ -18,7 +19,7 @@ async function checkLogin() {
   setBtnLoading(btn, true, "Logging in…");
   try {
     AppState.sbToken = await sbAuth(email, pass);
-    localStorage.setItem("infolinks_token", AppState.sbToken);
+    localStorage.setItem("lu_links_token", AppState.sbToken);
     AppState.adminLoggedIn = true;
     document.getElementById("adminPass").value = "";
     window.showView("admin");
@@ -30,8 +31,9 @@ async function checkLogin() {
 }
 
 async function logout() {
+  window.stopAdminInboxBadgePolling?.();
   await sbLogout();
-  localStorage.removeItem("infolinks_token");
+  localStorage.removeItem("lu_links_token");
   AppState.sbToken = null;
   AppState.adminLoggedIn = false;
   window.showView("home");
@@ -108,6 +110,9 @@ function adminTab(t) {
   if (t === "feedback" && typeof window.resetAdminFeedbackPage === "function") {
     window.resetAdminFeedbackPage();
   }
+  if (t === "suggestions" && typeof window.resetAdminSuggestionPage === "function") {
+    window.resetAdminSuggestionPage();
+  }
   document.querySelectorAll(".admin-tab").forEach((b) => {
     b.classList.toggle("active", b.dataset.adminTab === t);
   });
@@ -128,11 +133,20 @@ function shortUrl(url) {
   }
 }
 
+function adminUrlDisplay(url) {
+  if (!url) return `<span class="admin-url is-empty">—</span>`;
+  return `<span class="admin-url" title="${esc(url)}"><span class="admin-url-short">${esc(shortUrl(url))}</span><span class="admin-url-full">${esc(url)}</span></span>`;
+}
+
 function _adminLinkRow(l, editOnclick, deleteOnclick) {
   if (!isMobileView()) {
     return `
       <div class="link-chip">
-        ${getLinkBadge(l.type)}<span>${esc(l.label)}</span>
+        ${getLinkBadge(l.type)}
+        <span class="link-label-with-langs">
+          <span>${esc(l.label)}</span>
+          ${getLanguageChips(l.languages)}
+        </span>
         ${getContentTypeChips(l.content_type)}
         ${l.note ? `<span class="admin-muted">(${esc(l.note)})</span>` : ""}
         <button class="action-btn admin-chip-btn" onclick="${editOnclick}">✏️</button>
@@ -143,7 +157,10 @@ function _adminLinkRow(l, editOnclick, deleteOnclick) {
     <div class="link-item admin-link-row">
       <div class="link-item-main">
         ${getLinkBadge(l.type)}
-        <span class="link-label">${esc(l.label)}</span>
+        <span class="link-label-with-langs">
+          <span class="link-label">${esc(l.label)}</span>
+          ${getLanguageChips(l.languages)}
+        </span>
         ${l.note ? `<span class="link-note">${esc(l.note)}</span>` : ""}
       </div>
       ${getContentTypeChips(l.content_type)}
@@ -157,14 +174,348 @@ function _adminLinkRow(l, editOnclick, deleteOnclick) {
 function renderAdminContent() {
   loadReportsBadges();
   syncAdminMobileChrome();
-  if (AppState.currentAdminTab === "courses") renderAdminCourses();
+  if (AppState.currentAdminTab === "structure") renderAdminStructure();
+  else if (AppState.currentAdminTab === "courses") renderAdminCourses();
   else if (AppState.currentAdminTab === "extra") renderAdminExtra();
   else if (AppState.currentAdminTab === "feedback") renderAdminFeedback();
+  else if (AppState.currentAdminTab === "suggestions") renderAdminSuggestions();
   else if (AppState.currentAdminTab === "reports") renderAdminReports();
   else if (AppState.currentAdminTab === "contributions") renderAdminContributions();
   else if (AppState.currentAdminTab === "students") renderAdminStudents();
   else renderAdminAnalytics();
 }
+
+async function renderAdminStructure() {
+  const container = document.getElementById("adminContent");
+  try {
+    const [faculties, branches, specs, offerings, years, semesters] = await Promise.all([
+      apiRequest("/api/admin/faculties"),
+      apiRequest("/api/admin/branches"),
+      apiRequest("/api/admin/specialisations"),
+      apiRequest("/api/admin/branch_specialisations"),
+      apiRequest("/api/admin/years"),
+      apiRequest("/api/admin/semesters"),
+    ]);
+    AppState.adminStructCache = { faculties, branches, specs, offerings, years, semesters };
+
+    const branchName = (id) => branches.find((b) => b.id === id)?.name || `#${id}`;
+    const facName = (id) => faculties.find((f) => f.id === id)?.name || `#${id}`;
+    const specName = (id) => specs.find((s) => s.id === id)?.name || `#${id}`;
+    const offeringLabel = (id) => {
+      const o = offerings.find((x) => x.id === id);
+      if (!o) return `#${id}`;
+      return `${branchName(o.branch_id)} · ${specName(o.specialisation_id)}`;
+    };
+
+    const step = AppState.adminStructStep || "faculties";
+
+    if (step === "branches") {
+      container.innerHTML = `
+        <div class="admin-structure">
+          <button type="button" class="nav-back" onclick="adminStructGo('faculties')">← Faculties</button>
+          <div class="admin-struct-head">
+            <h3>Campuses</h3>
+            <p class="admin-struct-sub">Shared across faculties. Link them from each faculty page.</p>
+          </div>
+          <div class="admin-inline-form">
+            <input id="newBranchName" placeholder="Campus name (e.g. Hadath)"/>
+            <button class="btn btn-primary" onclick="adminCreateBranch()">Add campus</button>
+          </div>
+          <div class="admin-struct-list">
+            ${branches.map((b) => {
+              const facCount = (AppState.dbFaculties || []).filter((f) =>
+                (f.branches || []).some((br) => br.id === b.id),
+              ).length;
+              return `<div class="admin-struct-row">
+                <div>
+                  <strong>${esc(b.name)}</strong>
+                  <span class="admin-muted">${facCount} facult${facCount === 1 ? "y" : "ies"}</span>
+                </div>
+                <button class="action-btn del" onclick="adminDeleteEntity('branches',${b.id})">🗑</button>
+              </div>`;
+            }).join("") || '<div class="empty">No campuses yet.</div>'}
+          </div>
+        </div>`;
+      return;
+    }
+
+    if (step === "offering") {
+      const offering = offerings.find((o) => o.id === AppState.adminStructOfferingId);
+      if (!offering) {
+        AppState.adminStructStep = "faculty";
+        renderAdminStructure();
+        return;
+      }
+      const sp = specs.find((s) => s.id === offering.specialisation_id);
+      const facId = sp?.faculty_id ?? AppState.adminStructFacultyId;
+      const offsYears = years
+        .filter((y) => y.branch_specialisation_id === offering.id)
+        .sort((a, b) => (a.display_order || 0) - (b.display_order || 0));
+      container.innerHTML = `
+        <div class="admin-structure">
+          <button type="button" class="nav-back" onclick="adminStructGo('faculty',${facId})">← ${esc(facName(facId))}</button>
+          <div class="admin-struct-head">
+            <h3>${esc(offeringLabel(offering.id))}</h3>
+            <p class="admin-struct-sub">Years & semesters for this campus offering.</p>
+          </div>
+          <div class="admin-inline-form">
+            <input id="newYearName" placeholder="Year name (e.g. Year 1)"/>
+            <button class="btn btn-primary" onclick="adminCreateYear(${offering.id})">Add year</button>
+          </div>
+          ${offsYears.map((y) => {
+            const sems = semesters
+              .filter((s) => s.year_id === y.id)
+              .sort((a, b) => (a.display_order || 0) - (b.display_order || 0));
+            return `<div class="admin-struct-panel">
+              <div class="admin-struct-panel-head">
+                <strong>${esc(y.name)}</strong>
+                <button class="action-btn del" onclick="adminDeleteEntity('years',${y.id})">🗑</button>
+              </div>
+              <div class="admin-inline-form compact">
+                <input id="newSemName-${y.id}" placeholder="Semester name (e.g. Semester 1)"/>
+                <button class="btn btn-primary" onclick="adminCreateSemester(${y.id})">Add semester</button>
+              </div>
+              <div class="admin-struct-list tight">
+                ${sems.map((s) => `<div class="admin-struct-row">
+                  <strong>${esc(s.name)}</strong>
+                  <button class="action-btn del" onclick="adminDeleteEntity('semesters',${s.id})">🗑</button>
+                </div>`).join("") || '<div class="admin-muted">No semesters yet.</div>'}
+              </div>
+            </div>`;
+          }).join("") || '<div class="empty">No years yet — add Year 1 to get started.</div>'}
+        </div>`;
+      return;
+    }
+
+    if (step === "faculty") {
+      const fac = faculties.find((f) => f.id === AppState.adminStructFacultyId);
+      if (!fac) {
+        AppState.adminStructStep = "faculties";
+        renderAdminStructure();
+        return;
+      }
+      const facSpecs = specs
+        .filter((s) => s.faculty_id === fac.id)
+        .sort((a, b) => (a.display_order || 0) - (b.display_order || 0));
+      const facTree = (AppState.dbFaculties || []).find((f) => f.id === fac.id);
+      const linkedBranches = facTree?.branches || [];
+      const linkedIds = new Set(linkedBranches.map((b) => b.id));
+      const facOfferings = offerings.filter((o) => {
+        const sp = specs.find((s) => s.id === o.specialisation_id);
+        return sp && sp.faculty_id === fac.id;
+      });
+      const unlinkedBranches = branches.filter((b) => !linkedIds.has(b.id));
+
+      container.innerHTML = `
+        <div class="admin-structure">
+          <button type="button" class="nav-back" onclick="adminStructGo('faculties')">← All faculties</button>
+          <div class="admin-struct-head">
+            <h3>${esc(fac.name)}</h3>
+            <p class="admin-struct-sub">Specialisations, campuses, and offerings.</p>
+          </div>
+
+          <div class="admin-struct-grid">
+            <section class="admin-struct-panel">
+              <div class="admin-struct-panel-head"><h4>Specialisations</h4></div>
+              <div class="admin-inline-form compact">
+                <input id="newSpecName" placeholder="Specialisation name"/>
+                <button class="btn btn-primary" onclick="adminCreateSpecialisation(${fac.id})">Add</button>
+              </div>
+              <div class="admin-struct-list tight">
+                ${facSpecs.map((s) => `<div class="admin-struct-row">
+                  <strong>${esc(s.name)}</strong>
+                  <button class="action-btn del" onclick="adminDeleteEntity('specialisations',${s.id})">🗑</button>
+                </div>`).join("") || '<div class="admin-muted">None yet.</div>'}
+              </div>
+            </section>
+
+            <section class="admin-struct-panel">
+              <div class="admin-struct-panel-head"><h4>Campuses</h4></div>
+              <div class="admin-inline-form compact">
+                <select id="linkBranchId">${unlinkedBranches.map((b) => `<option value="${b.id}">${esc(b.name)}</option>`).join("") || '<option value="">All linked</option>'}</select>
+                <button class="btn btn-primary" onclick="adminLinkFacultyBranch(${fac.id})" ${unlinkedBranches.length ? "" : "disabled"}>Link</button>
+              </div>
+              <div class="admin-struct-list tight">
+                ${linkedBranches.map((b) => `<div class="admin-struct-row">
+                  <strong>${esc(b.name)}</strong>
+                  <button class="action-btn del" onclick="adminUnlinkFacultyBranch(${fac.id},${b.id})">Unlink</button>
+                </div>`).join("") || '<div class="admin-muted">No campuses linked.</div>'}
+              </div>
+            </section>
+          </div>
+
+          <section class="admin-struct-panel" style="margin-top:14px;">
+            <div class="admin-struct-panel-head">
+              <h4>Offerings</h4>
+              <span class="admin-muted">${facOfferings.length} total</span>
+            </div>
+            <div class="admin-inline-form">
+              <select id="offerBranchId">${linkedBranches.map((b) => `<option value="${b.id}">${esc(b.name)}</option>`).join("") || '<option value="">Link a campus first</option>'}</select>
+              <select id="offerSpecId">${facSpecs.map((s) => `<option value="${s.id}">${esc(s.name)}</option>`).join("") || '<option value="">Add a specialisation first</option>'}</select>
+              <button class="btn btn-primary" onclick="adminCreateOffering()" ${linkedBranches.length && facSpecs.length ? "" : "disabled"}>Offer</button>
+            </div>
+            <div class="admin-struct-list">
+              ${facOfferings.map((o) => {
+                const yCount = years.filter((y) => y.branch_specialisation_id === o.id).length;
+                return `<div class="admin-struct-row">
+                  <button type="button" class="admin-struct-row-main" onclick="adminStructGo('offering',${fac.id},${o.id})">
+                    <span>
+                      <strong>${esc(branchName(o.branch_id))} · ${esc(specName(o.specialisation_id))}</strong>
+                      <span class="admin-muted">${yCount} year${yCount === 1 ? "" : "s"}</span>
+                    </span>
+                    <span class="pick-chev" aria-hidden="true">›</span>
+                  </button>
+                  <button class="action-btn del" onclick="adminDeleteEntity('branch_specialisations',${o.id})">🗑</button>
+                </div>`;
+              }).join("") || '<div class="empty">No offerings yet — link a campus and offer a specialisation.</div>'}
+            </div>
+          </section>
+        </div>`;
+      return;
+    }
+
+    // faculties root
+    const cards = faculties
+      .map((f) => {
+        const facSpecs = specs.filter((s) => s.faculty_id === f.id);
+        const facTree = (AppState.dbFaculties || []).find((x) => x.id === f.id);
+        const campusCount = (facTree?.branches || []).length;
+        const offerCount = offerings.filter((o) =>
+          facSpecs.some((s) => s.id === o.specialisation_id),
+        ).length;
+        return `<button type="button" class="pick-card" onclick="adminStructGo('faculty',${f.id})">
+          <span>
+            <span class="pick-title">${esc(f.name.replace(/^Faculty of\s+/i, "").replace(/^Institute of\s+/i, "") || f.name)}</span>
+            <small>${facSpecs.length} specialisation${facSpecs.length === 1 ? "" : "s"} · ${campusCount} campus${campusCount === 1 ? "" : "es"} · ${offerCount} offering${offerCount === 1 ? "" : "s"}</small>
+          </span>
+          <span class="pick-chev" aria-hidden="true">›</span>
+        </button>`;
+      })
+      .join("");
+
+    container.innerHTML = `
+      <div class="admin-structure">
+        <div class="admin-struct-head row">
+          <div>
+            <h3>Structure</h3>
+            <p class="admin-struct-sub">Faculty → campus → specialisation → years.</p>
+          </div>
+          <button type="button" class="btn btn-ghost" onclick="adminStructGo('branches')">Manage campuses</button>
+        </div>
+        <div class="admin-inline-form">
+          <input id="newFacultyName" placeholder="Faculty name"/>
+          <button class="btn btn-primary" onclick="adminCreateFaculty()">Add faculty</button>
+        </div>
+        <div class="pick-grid">${cards || '<div class="empty">No faculties yet.</div>'}</div>
+      </div>`;
+  } catch (e) {
+    container.innerHTML = `<div class="empty">⚠️ Failed to load structure: ${esc(e.message)}</div>`;
+  }
+}
+
+async function adminCreateFaculty() {
+  const name = document.getElementById("newFacultyName")?.value?.trim();
+  if (!name) return showToast("Name required", true);
+  await apiRequest("/api/admin/faculties", { method: "POST", body: { name } });
+  showToast("Faculty added");
+  await loadAll();
+  renderAdminStructure();
+}
+async function adminCreateBranch() {
+  const name = document.getElementById("newBranchName")?.value?.trim();
+  if (!name) return showToast("Name required", true);
+  await apiRequest("/api/admin/branches", { method: "POST", body: { name } });
+  showToast("Campus added");
+  await loadAll();
+  renderAdminStructure();
+}
+async function adminLinkFacultyBranch(facultyId) {
+  const fid = facultyId ?? document.getElementById("linkFacultyId")?.value;
+  const bid = document.getElementById("linkBranchId")?.value;
+  if (!fid || !bid) return showToast("Pick a campus", true);
+  await apiRequest(`/api/admin/faculties/${fid}/branches/${bid}`, { method: "POST", body: {} });
+  showToast("Campus linked");
+  await loadAll();
+  renderAdminStructure();
+}
+async function adminUnlinkFacultyBranch(facultyId, branchId) {
+  if (!confirm("Unlink this campus from the faculty?")) return;
+  await apiRequest(`/api/admin/faculties/${facultyId}/branches/${branchId}`, { method: "DELETE" });
+  showToast("Unlinked");
+  await loadAll();
+  renderAdminStructure();
+}
+async function adminCreateSpecialisation(facultyId) {
+  const name = document.getElementById("newSpecName")?.value?.trim();
+  const faculty_id = facultyId ?? parseInt(document.getElementById("newSpecFacultyId")?.value, 10);
+  if (!name) return showToast("Name required", true);
+  await apiRequest("/api/admin/specialisations", { method: "POST", body: { name, faculty_id } });
+  showToast("Specialisation added");
+  await loadAll();
+  renderAdminStructure();
+}
+async function adminCreateOffering() {
+  const branch_id = parseInt(document.getElementById("offerBranchId")?.value, 10);
+  const specialisation_id = parseInt(document.getElementById("offerSpecId")?.value, 10);
+  if (!branch_id || !specialisation_id) return showToast("Pick campus and specialisation", true);
+  await apiRequest("/api/admin/branch_specialisations", { method: "POST", body: { branch_id, specialisation_id } });
+  showToast("Offering added");
+  await loadAll();
+  renderAdminStructure();
+}
+async function adminCreateYear(offeringId) {
+  const name = document.getElementById("newYearName")?.value?.trim();
+  const branch_specialisation_id =
+    offeringId ?? parseInt(document.getElementById("newYearOfferingId")?.value, 10);
+  if (!name) return showToast("Name required", true);
+  await apiRequest("/api/admin/years", { method: "POST", body: { name, branch_specialisation_id } });
+  showToast("Year added");
+  await loadAll();
+  renderAdminStructure();
+}
+async function adminCreateSemester(yearId) {
+  const input =
+    (yearId && document.getElementById(`newSemName-${yearId}`)) ||
+    document.getElementById("newSemName");
+  const name = input?.value?.trim();
+  const year_id = yearId ?? parseInt(document.getElementById("newSemYearId")?.value, 10);
+  if (!name) return showToast("Name required", true);
+  await apiRequest("/api/admin/semesters", { method: "POST", body: { name, year_id } });
+  showToast("Semester added");
+  await loadAll();
+  renderAdminStructure();
+}
+async function adminDeleteEntity(kind, id) {
+  if (!confirm("Delete this item?")) return;
+  await apiRequest(`/api/admin/${kind}/${id}`, { method: "DELETE" });
+  showToast("Deleted");
+  await loadAll();
+  renderAdminStructure();
+}
+
+function adminStructGo(step, facultyId = null, offeringId = null) {
+  AppState.adminStructStep = step;
+  if (facultyId != null) AppState.adminStructFacultyId = facultyId;
+  if (step === "faculties") {
+    AppState.adminStructFacultyId = null;
+    AppState.adminStructOfferingId = null;
+  }
+  if (step === "faculty") AppState.adminStructOfferingId = null;
+  if (step === "offering") AppState.adminStructOfferingId = offeringId;
+  renderAdminStructure();
+}
+
+window.renderAdminStructure = renderAdminStructure;
+window.adminCreateFaculty = adminCreateFaculty;
+window.adminCreateBranch = adminCreateBranch;
+window.adminLinkFacultyBranch = adminLinkFacultyBranch;
+window.adminUnlinkFacultyBranch = adminUnlinkFacultyBranch;
+window.adminCreateSpecialisation = adminCreateSpecialisation;
+window.adminCreateOffering = adminCreateOffering;
+window.adminCreateYear = adminCreateYear;
+window.adminCreateSemester = adminCreateSemester;
+window.adminDeleteEntity = adminDeleteEntity;
+window.adminStructGo = adminStructGo;
 
 function _refocusSearch() {
   const s = document.querySelector("#adminContent .admin-search");
@@ -886,108 +1237,232 @@ async function renderAdminAnalytics() {
 }
 
 // ===================== ADMIN COURSES =====================
-function renderAdminCourses() {
-  const q = AppState.adminSearch.toLowerCase();
-
-  const progBtns =
-    `<button class="filter-btn ${AppState.adminFilterProg === "all" ? "active" : ""}" onclick="AppState.adminFilterProg='all';AppState.adminFilterYear='all';AppState.adminFilterSem='all';renderAdminCourses()">All</button>` +
-    AppState.dbPrograms
-      .map((p) => `<button class="filter-btn ${AppState.adminFilterProg === p.id ? "active" : ""}" onclick="AppState.adminFilterProg=${p.id};AppState.adminFilterYear='all';AppState.adminFilterSem='all';renderAdminCourses()">${esc(p.name)}</button>`)
-      .join("");
-
-  const activeProg = AppState.dbPrograms.find((p) => p.id === AppState.adminFilterProg);
-
-  let yearBtns = "";
-  if (activeProg) {
-    yearBtns =
-      `<button class="filter-btn ${AppState.adminFilterYear === "all" ? "active" : ""}" onclick="AppState.adminFilterYear='all';AppState.adminFilterSem='all';renderAdminCourses()">All</button>` +
-      activeProg.years.map((y) => `<button class="filter-btn ${AppState.adminFilterYear === y.id ? "active" : ""}" onclick="AppState.adminFilterYear=${y.id};AppState.adminFilterSem='all';renderAdminCourses()">${esc(y.name)}</button>`).join("");
+function _adminCoursePrograms() {
+  let list = AppState.dbPrograms || [];
+  if (AppState.adminFilterFaculty !== "all") {
+    list = list.filter((p) => p.faculty_id === AppState.adminFilterFaculty);
   }
+  if (AppState.adminFilterBranch !== "all") {
+    list = list.filter((p) => p.branch_id === AppState.adminFilterBranch);
+  }
+  if (AppState.adminFilterProg !== "all") {
+    list = list.filter((p) => p.id === AppState.adminFilterProg);
+  }
+  return list;
+}
 
-  let semBtns = "";
-  if (activeProg) {
-    let sems = [];
-    activeProg.years.forEach((y) => {
-      if (AppState.adminFilterYear === "all" || y.id === AppState.adminFilterYear)
-        y.sems.forEach((s) => {
-          if (!sems.find((x) => x.id === s.id)) sems.push(s);
-        });
+function _adminFilterSelect(id, label, value, options, onchange) {
+  return `<label class="admin-filter-field">
+    <span>${esc(label)}</span>
+    <select id="${id}" onchange="${onchange}">
+      ${options
+        .map(
+          ([v, text]) =>
+            `<option value="${v}" ${String(value) === String(v) ? "selected" : ""}>${esc(text)}</option>`,
+        )
+        .join("")}
+    </select>
+  </label>`;
+}
+
+function adminCoursesSetFaculty(val) {
+  AppState.adminFilterFaculty = val === "all" ? "all" : parseInt(val, 10);
+  AppState.adminFilterBranch = "all";
+  AppState.adminFilterProg = "all";
+  AppState.adminFilterYear = "all";
+  AppState.adminFilterSem = "all";
+  renderAdminCourses();
+}
+function adminCoursesSetBranch(val) {
+  AppState.adminFilterBranch = val === "all" ? "all" : parseInt(val, 10);
+  AppState.adminFilterProg = "all";
+  AppState.adminFilterYear = "all";
+  AppState.adminFilterSem = "all";
+  renderAdminCourses();
+}
+function adminCoursesSetProg(val) {
+  AppState.adminFilterProg = val === "all" ? "all" : parseInt(val, 10);
+  AppState.adminFilterYear = "all";
+  AppState.adminFilterSem = "all";
+  renderAdminCourses();
+}
+function adminCoursesSetYear(val) {
+  AppState.adminFilterYear = val === "all" ? "all" : parseInt(val, 10);
+  AppState.adminFilterSem = "all";
+  renderAdminCourses();
+}
+function adminCoursesSetSem(val) {
+  AppState.adminFilterSem = val === "all" ? "all" : parseInt(val, 10);
+  renderAdminCourses();
+}
+
+window.adminCoursesSetFaculty = adminCoursesSetFaculty;
+window.adminCoursesSetBranch = adminCoursesSetBranch;
+window.adminCoursesSetProg = adminCoursesSetProg;
+window.adminCoursesSetYear = adminCoursesSetYear;
+window.adminCoursesSetSem = adminCoursesSetSem;
+
+function renderAdminCourses() {
+  const q = AppState.adminSearch.toLowerCase().trim();
+  const faculties = AppState.dbFaculties || [];
+  const allPrograms = AppState.dbPrograms || [];
+
+  const facultyOpts = [["all", "All faculties"], ...faculties.map((f) => [f.id, f.name])];
+  let branchOpts = [["all", "All campuses"]];
+  let progOpts = [["all", "All specialisations"]];
+
+  const facScoped =
+    AppState.adminFilterFaculty === "all"
+      ? allPrograms
+      : allPrograms.filter((p) => p.faculty_id === AppState.adminFilterFaculty);
+
+  const branches = new Map();
+  facScoped.forEach((p) => {
+    const fac = faculties.find((f) => f.id === p.faculty_id);
+    const br = (fac?.branches || []).find((b) => b.id === p.branch_id);
+    if (br) branches.set(br.id, br.name);
+  });
+  [...branches.entries()]
+    .sort((a, b) => a[1].localeCompare(b[1]))
+    .forEach(([id, name]) => branchOpts.push([id, name]));
+
+  const branchScoped =
+    AppState.adminFilterBranch === "all"
+      ? facScoped
+      : facScoped.filter((p) => p.branch_id === AppState.adminFilterBranch);
+  branchScoped
+    .slice()
+    .sort((a, b) => a.name.localeCompare(b.name))
+    .forEach((p) => {
+      const label = p.name.includes(" · ")
+        ? p.name
+        : `${p.name}`;
+      progOpts.push([p.id, label]);
     });
-    semBtns =
-      `<button class="filter-btn ${AppState.adminFilterSem === "all" ? "active" : ""}" onclick="AppState.adminFilterSem='all';renderAdminCourses()">All</button>` +
-      sems.map((s) => `<button class="filter-btn ${AppState.adminFilterSem === s.id ? "active" : ""}" onclick="AppState.adminFilterSem=${s.id};renderAdminCourses()">${esc(s.name)}</button>`).join("");
+
+  const programs = _adminCoursePrograms();
+  const activeProg =
+    AppState.adminFilterProg !== "all"
+      ? allPrograms.find((p) => p.id === AppState.adminFilterProg)
+      : null;
+
+  let yearOpts = [["all", "All years"]];
+  let semOpts = [["all", "All semesters"]];
+  if (activeProg) {
+    activeProg.years.forEach((y) => yearOpts.push([y.id, y.name]));
+    activeProg.years.forEach((y) => {
+      if (AppState.adminFilterYear !== "all" && y.id !== AppState.adminFilterYear) return;
+      y.sems.forEach((s) => {
+        if (!semOpts.find((x) => String(x[0]) === String(s.id))) semOpts.push([s.id, s.name]);
+      });
+    });
   }
 
   let html = `
-    <input class="admin-search" placeholder="🔍 Search courses…" value="${esc(AppState.adminSearch)}" oninput="AppState.adminSearch=this.value;renderAdminCourses()"/>
-    <div style="margin-bottom:6px;">
-        <div style="font-size:.7rem;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:4px;">Program</div>
-        <div class="filters" style="flex-wrap:wrap;">${progBtns}</div>
-    </div>
-    ${activeProg
-      ? `
-    <div style="margin-bottom:6px;">
-        <div style="font-size:.7rem;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:4px;">Year</div>
-        <div class="filters" style="flex-wrap:wrap;">${yearBtns}</div>
-    </div>
-    <div style="margin-bottom:16px;">
-        <div style="font-size:.7rem;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:4px;">Semester</div>
-        <div class="filters" style="flex-wrap:wrap;">${semBtns}</div>
-    </div>`
-      : `<div style="margin-bottom:16px;"></div>`
-    }`;
+    <div class="admin-courses">
+      <input class="admin-search" placeholder="🔍 Search by course name or code…" value="${esc(AppState.adminSearch)}" oninput="AppState.adminSearch=this.value;renderAdminCourses()"/>
+      <div class="admin-filter-bar">
+        ${_adminFilterSelect("adminFacFilter", "Faculty", AppState.adminFilterFaculty, facultyOpts, "adminCoursesSetFaculty(this.value)")}
+        ${_adminFilterSelect("adminBrFilter", "Campus", AppState.adminFilterBranch, branchOpts, "adminCoursesSetBranch(this.value)")}
+        ${_adminFilterSelect("adminProgFilter", "Specialisation", AppState.adminFilterProg, progOpts, "adminCoursesSetProg(this.value)")}
+        ${
+          activeProg
+            ? `${_adminFilterSelect("adminYearFilter", "Year", AppState.adminFilterYear, yearOpts, "adminCoursesSetYear(this.value)")}
+               ${_adminFilterSelect("adminSemFilter", "Semester", AppState.adminFilterSem, semOpts, "adminCoursesSetSem(this.value)")}`
+            : ""
+        }
+      </div>`;
 
-  AppState.dbPrograms.forEach((prog) => {
-    if (AppState.adminFilterProg !== "all" && prog.id !== AppState.adminFilterProg) return;
+  const scopedTooWide =
+    AppState.adminFilterProg === "all" &&
+    AppState.adminFilterBranch === "all" &&
+    !q;
+
+  if (scopedTooWide) {
+    const hint =
+      AppState.adminFilterFaculty !== "all"
+        ? "Pick a campus or specialisation — or search by course code."
+        : "Pick a faculty (or search) to browse courses.";
+    html += `<div class="empty">${esc(hint)}</div></div>`;
+    document.getElementById("adminContent").innerHTML = html;
+    _refocusSearch();
+    return;
+  }
+
+  let shown = 0;
+  programs.forEach((prog) => {
     let progHtml = "";
+    let courseCount = 0;
     prog.years.forEach((year) => {
       if (AppState.adminFilterYear !== "all" && year.id !== AppState.adminFilterYear) return;
       year.sems.forEach((sem) => {
         if (AppState.adminFilterSem !== "all" && sem.id !== AppState.adminFilterSem) return;
         const filtered = sem.courses.filter(
-          (c) => !q || c.name.toLowerCase().includes(q) || c.code.toLowerCase().includes(q),
+          (c) =>
+            !q ||
+            c.name.toLowerCase().includes(q) ||
+            (c.code || "").toLowerCase().includes(q),
         );
         if (!filtered.length) return;
-        progHtml += `<div style="font-size:.78rem;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin:12px 0 8px;">${esc(year.name)} — ${esc(sem.name)}</div>`;
-        filtered.forEach((c) => {
-          progHtml += `<div class="admin-entity-card">
-            <div class="admin-entity-head">
-              <button type="button" class="admin-entity-toggle">
-                <span class="admin-entity-title">
-                  <strong>${esc(c.name)}</strong>
-                  <span class="course-code">${esc(c.code)}</span>
-                  ${c.is_optional ? '<span class="optional-tag">OPTIONAL</span>' : ""}
-                </span>
-                <span class="admin-entity-hint">${c.links.length} link${c.links.length === 1 ? "" : "s"}</span>
-                <span class="course-chev" aria-hidden="true">›</span>
-              </button>
-              <div class="action-btns">
-                <button class="action-btn" onclick="toggleOptional(${c.id},${c.is_optional})">${c.is_optional ? "✅ Optional" : "⬜ Optional"}</button>
-                <button class="action-btn" onclick="openEditCourseModal(${c.id}, ${Number(c.placement_id) || 0})">✏️ Edit</button>
-                <button class="action-btn" onclick="openAddLinkModal(${c.id})">+ Link</button>
-                <button class="action-btn del" onclick="confirmAction('Remove this course from this program? Links stay if it is still offered elsewhere.',()=>deleteCourse(${c.id}, ${Number(c.placement_id) || 0}))">🗑 Delete</button>
+        courseCount += filtered.length;
+        progHtml += `<div class="admin-sem-block">
+          <div class="admin-sem-label">${esc(year.name)} · ${esc(sem.name)}
+            <span class="admin-muted">${filtered.length}</span>
+          </div>
+          <div class="admin-course-table">
+            ${filtered
+              .map(
+                (c) => `<div class="admin-course-row">
+              <div class="admin-course-head">
+                <div class="admin-course-title">
+                  <span class="admin-course-name">${esc(c.name)}</span>
+                  <code class="course-code">${esc(c.code || "—")}</code>
+                </div>
+                <div class="action-btns admin-course-actions">
+                  <label class="admin-optional-check">
+                    <input type="checkbox" ${c.is_optional ? "checked" : ""} onchange="toggleOptional(${c.id}, ${!!c.is_optional})"/>
+                    Optional
+                  </label>
+                  <button class="action-btn" onclick="openEditCourseModal(${c.id}, ${Number(c.placement_id) || 0})">✏️ Edit</button>
+                  <button class="action-btn" onclick="openAddLinkModal(${c.id})">+ Link</button>
+                  <button class="action-btn del" onclick="confirmAction('Remove this course?',()=>deleteCourse(${c.id}, ${Number(c.placement_id) || 0}))">🗑 Delete</button>
+                </div>
               </div>
-            </div>
-            <div class="admin-link-list">
-              ${c.links.length
-              ? c.links
-                .map((l) => _adminLinkRow(
-                  l,
-                  `openEditLinkModal(${l.id},${c.id})`,
-                  `confirmDeleteLink(${l.id},${c.id})`,
-                ))
-                .join("")
-              : '<span class="admin-muted">No links</span>'
-            }
-            </div>
-          </div>`;
-        });
+              ${
+                c.links.length
+                  ? `<div class="admin-course-links">${c.links
+                      .map((l) =>
+                        _adminLinkRow(
+                          l,
+                          `openEditLinkModal(${l.id},${c.id})`,
+                          `confirmDeleteLink(${l.id},${c.id})`,
+                        ),
+                      )
+                      .join("")}</div>`
+                  : `<div class="admin-course-links admin-course-links--empty"><span class="admin-muted">No links yet</span></div>`
+              }
+            </div>`,
+              )
+              .join("")}
+          </div>
+        </div>`;
       });
     });
-    if (progHtml)
-      html += `<div style="margin-bottom:28px;"><div style="font-size:1rem;font-weight:700;color:var(--accent);margin-bottom:12px;">${esc(prog.name)}</div>${progHtml}</div>`;
+    if (!progHtml) return;
+    shown += courseCount;
+    html += `<section class="admin-offering-block">
+      <header class="admin-offering-head">
+        <h3>${esc(prog.name)}</h3>
+        <span class="admin-muted">${courseCount} course${courseCount === 1 ? "" : "s"}</span>
+      </header>
+      ${progHtml}
+    </section>`;
   });
 
+  if (!shown) {
+    html += `<div class="empty">${q ? "No courses match that search." : "No courses in this filter."}</div>`;
+  }
+  html += `</div>`;
   document.getElementById("adminContent").innerHTML = html;
   _refocusSearch();
 }
@@ -1065,8 +1540,8 @@ async function renderAdminReports() {
       html += `<tr class="admin-row">
         ${senderDetail(r.user_id)}
         ${adminCell("admin-pri", "Course", esc(r.course_name))}
-        ${adminCell(r.link_url ? "admin-detail" : "admin-detail admin-empty", "Link", `<span class="admin-url">${esc(r.link_url || "—")}</span>`)}
-        ${adminCell("admin-sec", "Issue", esc(issue))}
+        ${adminCell(r.link_url ? "admin-detail" : "admin-detail admin-empty", "Link", adminUrlDisplay(r.link_url))}
+        ${adminCell("admin-sec", "Issue", adminLongText(issue))}
         ${adminCell("admin-meta", "Status", `<span class="tag ${statusTag}">${esc(r.status || "open")}</span>`)}
         ${adminCell("admin-actions action-btns", "Actions", _reportActions(r))}
       </tr>`;
@@ -1116,8 +1591,8 @@ async function renderAdminContributions() {
       html += `<tr class="admin-row">
         ${senderDetail(c.user_id)}
         ${adminCell("admin-pri", "Course", esc(c.course_name))}
-        ${adminCell(c.link_url ? "admin-detail" : "admin-detail admin-empty", "Link", `<span class="admin-url">${esc(c.link_url || "—")}</span>`)}
-        ${adminCell("admin-sec", "Note", esc(preview))}
+        ${adminCell(c.link_url ? "admin-detail" : "admin-detail admin-empty", "Link", adminUrlDisplay(c.link_url))}
+        ${adminCell("admin-sec", "Note", adminLongText(preview))}
         ${adminCell("admin-meta", "Status", `<span class="tag ${statusTag}">${esc(c.status || "pending")}</span>`)}
         ${adminCell("admin-actions action-btns", "Actions", _contributionActions(c))}
       </tr>`;
@@ -1182,7 +1657,8 @@ const TIMELINE_META = {
   link_click: { icon: "🔗", label: "Link opened" },
   report: { icon: "🚨", label: "Report" },
   contribution: { icon: "➕", label: "Contribution" },
-  feedback: { icon: "⭐", label: "Feedback" },
+  feedback: { icon: "⭐", label: "Feedbacks" },
+  suggestion: { icon: "💡", label: "Suggestion" },
   favorite_added: { icon: "★", label: "Favorite added" },
   favorite_removed: { icon: "☆", label: "Favorite removed" },
 };
@@ -1315,34 +1791,65 @@ async function renderAdminStudentDetail() {
   }
 }
 
+/** Resolve contribution course_name ("Name (CODE)" or plain) to a course id. */
+function _matchContributionCourseId(courseName) {
+  const raw = String(courseName || "").trim();
+  if (!raw) return null;
+  const lower = raw.toLowerCase();
+  const codeMatch = raw.match(/\(([^)]+)\)\s*$/);
+  const code = codeMatch ? codeMatch[1].trim().toLowerCase() : "";
+  const nameOnly = codeMatch
+    ? raw.slice(0, codeMatch.index).trim().toLowerCase()
+    : lower;
+
+  let byCode = null;
+  let byName = null;
+  AppState.dbPrograms.forEach((p) =>
+    p.years.forEach((y) =>
+      y.sems.forEach((s) =>
+        s.courses.forEach((course) => {
+          const cName = String(course.name || "").toLowerCase();
+          const cCode = String(course.code || "").toLowerCase();
+          if (code && cCode === code) byCode = course.id;
+          if (cName === nameOnly || cName === lower || cCode === lower) byName = course.id;
+        }),
+      ),
+    ),
+  );
+  return byCode || byName || null;
+}
+
 // Auto-Approve Flow
 function openAutoApproveContribModal(c) {
-  let suggestedCourseId = "";
-  AppState.dbPrograms.forEach(p => p.years.forEach(y => y.sems.forEach(s => s.courses.forEach(course => {
-    if (course.name.toLowerCase() === c.course_name.toLowerCase() || course.code.toLowerCase() === c.course_name.toLowerCase()) {
-      suggestedCourseId = course.id;
-    }
-  }))));
+  const suggestedCourseId = _matchContributionCourseId(c.course_name);
 
   let courseOpts = "";
   const seenCourseIds = new Set();
-  AppState.dbPrograms.forEach(p => {
+  AppState.dbPrograms.forEach((p) => {
     courseOpts += `<optgroup label="${esc(p.name)}">`;
-    p.years.forEach(y => y.sems.forEach(s => s.courses.forEach(course => {
-      if (seenCourseIds.has(course.id)) return;
-      seenCourseIds.add(course.id);
-      courseOpts += `<option value="${course.id}" ${course.id === suggestedCourseId ? "selected" : ""}>${esc(course.name)} (${esc(course.code)})</option>`;
-    })));
+    p.years.forEach((y) =>
+      y.sems.forEach((s) =>
+        s.courses.forEach((course) => {
+          if (seenCourseIds.has(course.id)) return;
+          seenCourseIds.add(course.id);
+          const sel = Number(course.id) === Number(suggestedCourseId) ? "selected" : "";
+          courseOpts += `<option value="${course.id}" ${sel}>${esc(course.name)} (${esc(course.code)})</option>`;
+        }),
+      ),
+    );
     courseOpts += `</optgroup>`;
   });
 
   let preType = c.link_type || "drive";
+  let preLangs = [];
+  let preContent = "";
   let cleanNote = c.note || "";
-  const match = cleanNote.match(/^\[Type:\s*([^\]]+)\]\s*(.*)$/i);
-  if (match) {
-    preType = match[1];
-    cleanNote = match[2];
-  }
+  const parsed = parseContributionNote(cleanNote);
+  if (parsed.linkType) preType = parsed.linkType;
+  if (parsed.contentTypes) preContent = parsed.contentTypes;
+  if (parsed.languages.length) preLangs = parsed.languages;
+  cleanNote = parsed.note;
+  if (!preType && c.link_type) preType = c.link_type;
 
   window.openModal(`<h2>✅ Approve Contribution</h2>
   <p style="color:var(--muted);font-size:0.9rem;margin-bottom:16px;">Review and add this link directly to the database.</p>
@@ -1350,7 +1857,8 @@ function openAutoApproveContribModal(c) {
   <label>Type</label><select id="acType">${_linkTypeOptions(preType)}</select>
   <label>URL</label><input type="text" id="acUrl" value="${esc(c.link_url)}"/>
   <label>Label</label><input type="text" id="acLabel" value="Link"/>
-  <label>Content Type(s)</label>${_contentTypeCheckboxes("", "acct")}
+  <label>Content Type(s)</label>${_contentTypeCheckboxes(preContent, "acct")}
+  <label>Language(s)</label>${_languageCheckboxes(preLangs, "aclang")}
   <label>Note</label><input type="text" id="acNote" value="${esc(cleanNote)}"/>
   <div class="modal-actions"><button class="btn btn-ghost" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="applyAutoApproveContrib(${c.id})">Approve & Add</button></div>`);
 }
@@ -1362,6 +1870,7 @@ async function applyAutoApproveContrib(contribId) {
   const label = document.getElementById("acLabel").value.trim() || "Link";
   const note = document.getElementById("acNote").value.trim();
   const contentType = _readContentTypeCheckboxes("acct");
+  const languages = _readLanguageCheckboxes("aclang");
 
   if (!courseId || !url) { showToast("Course and URL required.", true); return; }
 
@@ -1369,7 +1878,7 @@ async function applyAutoApproveContrib(contribId) {
   setBtnLoading(btn, true, "Saving…");
   try {
     await sb("links", "POST", {
-      course_id: courseId, type, url, label, note, content_type: contentType, display_order: _getNextDisplayOrder(courseId)
+      course_id: courseId, type, url, label, note, content_type: contentType, languages, display_order: _getNextDisplayOrder(courseId)
     });
     await sb(`contributions?id=eq.${contribId}`, "PATCH", { status: "approved" });
     window.closeModal(); _clearCache(); loadAll(); renderAdminContributions();
@@ -1391,7 +1900,10 @@ async function deleteCourse(id, placementId) {
 }
 async function toggleOptional(id, current) {
   try {
-    await sb(`courses?id=eq.${id}`, "PATCH", { is_optional: !current });
+    await apiRequest(`/api/admin/courses/${id}`, {
+      method: "PATCH",
+      body: { is_optional: !current },
+    });
     _clearCache();
     loadAll();
     renderAdminCourses();
@@ -1462,8 +1974,15 @@ function bindAdminMobile() {
   const root = document.getElementById("view-admin");
   if (root && !root.dataset.mobileBound) {
     root.addEventListener("click", (e) => {
-      if (!isMobileView()) return;
       if (e.target.closest(".action-btn, a, select, input, .btn")) return;
+
+      const longText = e.target.closest(".admin-long-text:not(.is-empty)");
+      if (longText && !isMobileView()) {
+        longText.classList.toggle("is-expanded");
+        return;
+      }
+
+      if (!isMobileView()) return;
 
       const toggle = e.target.closest(".admin-entity-toggle");
       if (toggle) {

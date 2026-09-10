@@ -9,8 +9,8 @@ import (
 	"reflect"
 	"testing"
 
-	"infolinks-backend/internal/errs"
-	"infolinks-backend/internal/models"
+	"lu-links/internal/errs"
+	"lu-links/internal/models"
 )
 
 type fakeLinkService struct {

@@ -1,6 +1,7 @@
 
 // ===================== HELPERS =====================
 import { AppState, toggleFavorite } from "./state.js";
+import { t } from "./i18n.js";
 
 function esc(str) {
   if (!str) return "";
@@ -22,39 +23,7 @@ function _linkHref(url) {
 }
 
 // ===================== THEME =====================
-function getSystemDark() {
-  return window.matchMedia("(prefers-color-scheme: dark)").matches;
-}
-
-function applyTheme(isDark) {
-  AppState.isDark = isDark;
-  document.documentElement.setAttribute(
-    "data-theme",
-    isDark ? "dark" : "light",
-  );
-  const themeBtn = document.getElementById("themeBtn");
-  if (themeBtn) themeBtn.textContent = isDark ? "🌙" : "☀️";
-  const themeColor = document.querySelector('meta[name="theme-color"]');
-  if (themeColor) {
-    themeColor.setAttribute("content", isDark ? "#0f0f13" : "#f4f4fb");
-  }
-}
-
-function applySystemTheme() {
-  applyTheme(getSystemDark());
-}
-
-function toggleTheme() {
-  applyTheme(!AppState.isDark);
-}
-
-(function initTheme() {
-  localStorage.removeItem("infolinks_theme");
-  applySystemTheme();
-  window
-    .matchMedia("(prefers-color-scheme: dark)")
-    .addEventListener("change", applySystemTheme);
-})();
+// Theme + language preferences live in prefs.js (system/light/dark, eng/fr/ar).
 
 // ===================== MOBILE =====================
 function toggleMobileMenu() {
@@ -78,6 +47,15 @@ function adminTd(label, inner, extraAttrs = "") {
 
 function adminCell(role, label, inner) {
   return `<td class="${role}" data-label="${esc(label)}">${inner}</td>`;
+}
+
+/** Clamp-friendly body text for admin inbox tables (feedback / reports / contributions). */
+function adminLongText(text, { empty = "—" } = {}) {
+  const raw = String(text ?? "").trim();
+  if (!raw) {
+    return `<span class="admin-long-text is-empty">${esc(empty)}</span>`;
+  }
+  return `<div class="admin-long-text" title="${esc(raw)}">${esc(raw)}</div>`;
 }
 
 document.addEventListener("click", (e) => {
@@ -118,26 +96,36 @@ function getLinkBadge(type) {
 
 // ===================== CONTENT TYPE CHIP =====================
 const CONTENT_TYPE_META = {
-  td: { label: "TD", emoji: "✏️", cls: "ct-td" },
-  cours: { label: "Cours", emoji: "📄", cls: "ct-cours" },
-  videos: { label: "Videos", emoji: "🎬", cls: "ct-videos" },
-  sessions: { label: "Sessions", emoji: "🎤", cls: "ct-sessions" },
-  exams: { label: "Exams", emoji: "📝", cls: "ct-exams" },
-  other: { label: "Other", emoji: "📦", cls: "ct-other" },
+  td: { key: "ct_td", emoji: "✏️", cls: "ct-td" },
+  cours: { key: "ct_cours", emoji: "📄", cls: "ct-cours" },
+  videos: { key: "ct_videos", emoji: "🎬", cls: "ct-videos" },
+  sessions: { key: "ct_sessions", emoji: "🎤", cls: "ct-sessions" },
+  exams: { key: "ct_exams", emoji: "📝", cls: "ct-exams" },
+  other: { key: "ct_other", emoji: "📦", cls: "ct-other" },
 };
 
 /**
  * Render content-type chips. Accepts a comma-separated string (e.g. "td,cours")
  * or a single value. Returns wrapped HTML for consistent layout.
  */
+function getLanguageChips(languages) {
+  const langs = Array.isArray(languages) ? languages : [];
+  if (!langs.length) return "";
+  const labels = { ar: "AR", fr: "FR", en: "EN" };
+  return `<span class="lang-chips">${langs
+    .map((l) => `<span class="lang-chip">${esc(labels[l] || String(l).toUpperCase())}</span>`)
+    .join("")}</span>`;
+}
+
 function getContentTypeChips(contentType) {
   if (!contentType) return "";
   const types = String(contentType).split(",").map(t => t.trim()).filter(Boolean);
   if (!types.length) return "";
-  const chips = types.map(t => {
-    const meta = CONTENT_TYPE_META[t];
+  const chips = types.map((type) => {
+    const meta = CONTENT_TYPE_META[type];
     if (!meta) return "";
-    return `<span class="content-chip ${meta.cls}" title="${meta.label}">${meta.emoji} ${meta.label}</span>`;
+    const label = t(meta.key);
+    return `<span class="content-chip ${meta.cls}" title="${esc(label)}">${meta.emoji} ${esc(label)}</span>`;
   }).filter(Boolean).join("");
   if (!chips) return "";
   return `<span class="content-chips-wrap">${chips}</span>`;
@@ -149,7 +137,7 @@ function getContentTypeChip(ct) { return getContentTypeChips(ct); }
 /**
  * Builds the HTML string for a single course card.
  * Used by both renderCourses (filtered) and renderAllCourses (all).
- * opts.path is shown on mobile search results (program · year · semester).
+ * opts.path is shown under the course code (faculty · campus · …).
  */
 /** One entry per favorite course id, even when the course is offered in several programs. */
 function collectFavoriteCourses(query = "") {
@@ -185,8 +173,9 @@ function collectFavoriteCourses(query = "") {
 function _buildCourseCard(c, opts = {}) {
   const isFav = AppState.favorites.has(String(c.id));
   const path = opts.path || "";
-  const linksHtml = c.links.length
-    ? c.links
+  const links = Array.isArray(c.links) ? c.links : [];
+  const linksHtml = links.length
+    ? links
       .map(
         (l) => `
             <a class="link-item"
@@ -196,57 +185,65 @@ function _buildCourseCard(c, opts = {}) {
                href="${_linkHref(l.url)}">
               <span class="link-item-main">
                 ${getLinkBadge(l.type)}
-                <span class="link-label">${esc(l.label)}</span>
+                <span class="link-label-with-langs">
+                  <span class="link-label">${esc(l.label)}</span>
+                  ${getLanguageChips(l.languages)}
+                </span>
                 ${l.note ? `<span class="link-note">${esc(l.note)}</span>` : ""}
-                <button class="copy-btn" title="Copy link"
-                  aria-label="Copy link">⎘</button>
+                <button class="copy-btn" title="${esc(t("copy_link"))}"
+                  aria-label="${esc(t("copy_link"))}">⎘</button>
               </span>
               ${getContentTypeChips(l.content_type)}
             </a>`,
       )
       .join("")
-    : '<span class="no-links">No links yet — contribute!</span>';
+    : `<span class="no-links">${esc(t("no_links_yet"))}</span>`;
 
   return `
     <div class="course-card" id="course-card-${c.id}">
-      <div class="course-header" data-toggle-course="${c.id}">
+      <div class="course-header">
         <h2 class="course-name">${esc(c.name)}</h2>
         <div class="course-header-side">
           <div class="course-header-tags">
-            ${c.is_optional ? '<span class="optional-tag">OPTIONAL</span>' : ""}
+            ${c.is_optional ? `<span class="optional-tag">${esc(t("optional_tag"))}</span>` : ""}
             <h3 class="course-code">${esc(c.code)}</h3>
-            ${path ? `<span class="course-path">${esc(path)}</span>` : ""}
           </div>
           <button class="fav-btn ${isFav ? "active" : ""}"
-            title="${isFav ? "Remove from My Courses" : "Add to My Courses"}"
+            title="${esc(isFav ? t("fav_remove") : t("fav_add"))}"
             onclick="handleFavoriteToggle(${c.id})"
-            aria-label="Favorite">★</button>
-          <span class="course-chev" aria-hidden="true">›</span>
+            aria-label="${esc(t("fav_aria"))}">★</button>
         </div>
       </div>
+      ${path ? `<div class="course-path">${esc(path)}</div>` : ""}
       <div class="links-list">${linksHtml}</div>
     </div>`;
 }
 
-const TELEGRAM_CONTRIBUTE_URL = "https://t.me/Info_Links_Contributing_Guide";
+const TELEGRAM_CONTRIBUTE_URL = "https://t.me/LU_Links_Contributing_Guide";
 
 function hintLink(url, label) {
   return `<a class="hint-link" href="${_linkHref(url)}" data-url="${esc(url)}">${esc(label)}</a>`;
 }
 
-const FAVORITES_HINT =
-  "Mark the courses you use most with ★ to reach them more easily in the My Courses section.";
+function FAVORITES_HINT() {
+  return t("tip_fav_body");
+}
 
-const CONTRIBUTE_HINT = `Want to help and contribute to Info Links? Visit our ${hintLink(TELEGRAM_CONTRIBUTE_URL, "Telegram guide")} to know more on how you can help us make Info Links better.`;
+function CONTRIBUTE_HINT() {
+  return t("tip_contrib_body").replace(
+    "{{link}}",
+    hintLink(TELEGRAM_CONTRIBUTE_URL, t("tip_contrib_link_label")),
+  );
+}
 
 function linkTypesLegendHtml() {
   return `
     <div class="hint-link-types">
-      <span class="hint-legend-item">${getLinkBadge("telegram")} Telegram</span>
-      <span class="hint-legend-item">${getLinkBadge("drive")} Google Drive</span>
-      <span class="hint-legend-item">${getLinkBadge("classroom")} Google Classroom</span>
-      <span class="hint-legend-item">${getLinkBadge("other")} Other Type</span>
-      <span class="hint-legend-item"><span class="optional-tag">OPTIONAL</span> Optional course</span>
+      <span class="hint-legend-item">${getLinkBadge("telegram")} ${esc(t("link_type_telegram"))}</span>
+      <span class="hint-legend-item">${getLinkBadge("drive")} ${esc(t("link_type_drive"))}</span>
+      <span class="hint-legend-item">${getLinkBadge("classroom")} ${esc(t("link_type_classroom"))}</span>
+      <span class="hint-legend-item">${getLinkBadge("other")} ${esc(t("tip_legend_other"))}</span>
+      <span class="hint-legend-item"><span class="optional-tag">${esc(t("optional_tag"))}</span> ${esc(t("tip_legend_optional"))}</span>
     </div>`;
 }
 
@@ -255,16 +252,24 @@ function hintCardHtml(title, bodyHtml, extraClass = "") {
   return `<div class="${classes}"><div class="fav-hint-title">${esc(title)}</div><div class="fav-hint-body">${bodyHtml}</div></div>`;
 }
 
-const FAVORITES_HINT_CARD = hintCardHtml("Favorites", FAVORITES_HINT);
-const CONTRIBUTE_HINT_CARD = hintCardHtml("Contributing", CONTRIBUTE_HINT);
-const LINK_TYPES_HINT_CARD = hintCardHtml("Link types", linkTypesLegendHtml(), "fav-hint--link-types");
+function FAVORITES_HINT_CARD() {
+  return hintCardHtml(t("tip_fav_title"), FAVORITES_HINT());
+}
+
+function CONTRIBUTE_HINT_CARD() {
+  return hintCardHtml(t("tip_contrib_title"), CONTRIBUTE_HINT());
+}
+
+function LINK_TYPES_HINT_CARD() {
+  return hintCardHtml(t("tip_types_title"), linkTypesLegendHtml(), "fav-hint--link-types");
+}
 
 function tipsSectionHtml() {
   return `
     <div class="tips-section">
-      ${FAVORITES_HINT_CARD}
-      ${CONTRIBUTE_HINT_CARD}
-      ${LINK_TYPES_HINT_CARD}
+      ${FAVORITES_HINT_CARD()}
+      ${CONTRIBUTE_HINT_CARD()}
+      ${LINK_TYPES_HINT_CARD()}
     </div>`;
 }
 
@@ -298,7 +303,7 @@ function _paintFavorite(courseId) {
   if (btn) {
     const isFav = AppState.favorites.has(String(courseId));
     btn.classList.toggle("active", isFav);
-    btn.title = isFav ? "Remove from My Courses" : "Add to My Courses";
+    btn.title = isFav ? t("fav_remove") : t("fav_add");
   }
 }
 
@@ -319,8 +324,8 @@ async function handleFavoriteToggle(courseId) {
     if (window.handleStudentAuthError?.(err, retry)) return;
     window.logApiError?.(err, "syncFavorite");
     window.showToast(
-      window.formatApiError?.(err, "Could not save your favorites.") ||
-      "Could not save your favorites.",
+      window.formatApiError?.(err, t("toast_fav_save_fail")) ||
+      t("toast_fav_save_fail"),
       true,
     );
   }
@@ -329,9 +334,9 @@ async function handleFavoriteToggle(courseId) {
 // ===================== COPY LINK =====================
 function copyLink(url) {
   navigator.clipboard.writeText(url).then(() => {
-    window.showToast("Link copied to clipboard! 📋");
+    window.showToast(t("toast_link_copied"));
   }).catch(() => {
-    window.showToast("Copy failed — try manually.", true);
+    window.showToast(t("toast_copy_failed"), true);
   });
 }
 
@@ -356,9 +361,6 @@ function setBtnLoading(btn, loading, loadingText = "…") {
   }
 }
 
-window.toggleTheme = toggleTheme;
-window.applyTheme = applyTheme;
-window.applySystemTheme = applySystemTheme;
 window.toggleMobileMenu = toggleMobileMenu;
 window.toggleFilters = toggleFilters;
 window.copyLink = copyLink;
@@ -372,11 +374,9 @@ export {
   _buildCourseCard,
   getLinkBadge,
   getContentTypeChips,
+  getLanguageChips,
   getContentTypeChip,
   setBtnLoading,
-  toggleTheme,
-  applyTheme,
-  applySystemTheme,
   toggleMobileMenu,
   toggleFilters,
   copyLink,
@@ -385,6 +385,7 @@ export {
   isMobileView,
   adminTd,
   adminCell,
+  adminLongText,
   FAVORITES_HINT,
   FAVORITES_HINT_CARD,
   collectFavoriteCourses,

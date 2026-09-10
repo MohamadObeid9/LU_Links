@@ -8,7 +8,7 @@ import {
   renderSemFilters,
 } from "./home.js";
 
-const VALID_VIEWS = ["home", "report-submit", "feedback", "about", "admin-gate", "admin"];
+const VALID_VIEWS = ["home", "report-submit", "feedback-suggestion", "about", "admin-gate", "admin"];
 
 function _getPathView() {
   const path = window.location.pathname.replace("/", "");
@@ -43,7 +43,7 @@ async function exportData() {
     const a = document.createElement("a");
     const date = new Date().toISOString().slice(0, 10);
     a.href = url;
-    a.download = `infolinks-backup-${date}.json`;
+    a.download = `lu-links-backup-${date}.json`;
     a.click();
     URL.revokeObjectURL(url);
     showToast("✅ Backup downloaded!");

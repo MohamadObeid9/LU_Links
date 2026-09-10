@@ -2,7 +2,7 @@
 
 ## Context
 
-Info Links stores all application data in PostgreSQL on Supabase (ADR 001, ADR 002). The Go repositories in `internal/repository` assume a fixed set of tables — programs through link_clicks — with foreign keys, check constraints, and display-order columns.
+LU Links stores all application data in PostgreSQL on Supabase (ADR 001, ADR 002). The Go repositories in `internal/repository` assume a fixed set of tables — the academic hierarchy through analytics and submissions — with foreign keys, check constraints, and display-order columns. The live shape is faculties → offerings → courses (ADR 011); older migrations still show the pre-LU program tree.
 
 Until this ADR, the **canonical schema lived only in the Supabase dashboard**. That meant:
 

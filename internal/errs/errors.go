@@ -10,6 +10,8 @@ var (
 	ErrUsernameTaken     = errors.New("username already taken")
 	ErrUserNumberRange   = errors.New("number must be between 1 and 100")
 	ErrUserNameRequired  = errors.New("first and last name are required")
+	ErrUserInvalidLang   = errors.New("prefered_lang must be eng, fr, or ar")
+	ErrUserInvalidTheme  = errors.New("prefered_theme must be system, dark, or light")
 )
 
 // Analytics errors
@@ -63,9 +65,33 @@ var (
 	ErrCourseInvalidSemestreID   = errors.New("course invalid semestre id")
 	ErrCoursePatchEmpty          = errors.New("course invalid update parameters")
 	ErrCourseCodeAndNameRequired = errors.New("course code and course name are required")
-	ErrCourseAlreadyInSemester   = errors.New("course is already in that semester")
-	ErrCourseInvalidPlacementID  = errors.New("course invalid placement id")
-	ErrCourseCodeTaken           = errors.New("a course with this code already exists")
+)
+
+// Hierarchy Errors
+var (
+	ErrFacultyNotFound              = errors.New("faculty not found")
+	ErrFacultyInvalidID             = errors.New("invalid faculty id")
+	ErrFacultyNameRequired          = errors.New("faculty name is required")
+	ErrBranchNotFound               = errors.New("branch not found")
+	ErrBranchInvalidID              = errors.New("invalid branch id")
+	ErrBranchNameRequired           = errors.New("branch name is required")
+	ErrFacultyBranchNotFound        = errors.New("faculty branch link not found")
+	ErrFacultyBranchRequired        = errors.New("faculty is not offered at that branch")
+	ErrSpecialisationNotFound       = errors.New("specialisation not found")
+	ErrSpecialisationInvalidID      = errors.New("invalid specialisation id")
+	ErrSpecialisationNameRequired   = errors.New("specialisation name is required")
+	ErrSpecialisationFacultyRequired = errors.New("specialisation faculty_id is required")
+	ErrBranchSpecialisationNotFound = errors.New("branch specialisation not found")
+	ErrBranchSpecialisationInvalidID = errors.New("invalid branch specialisation id")
+	ErrYearNotFound                 = errors.New("year not found")
+	ErrYearInvalidID                = errors.New("invalid year id")
+	ErrYearNameRequired             = errors.New("year name is required")
+	ErrYearOfferingRequired         = errors.New("year branch_specialisation_id is required")
+	ErrSemesterNotFound             = errors.New("semester not found")
+	ErrSemesterInvalidID            = errors.New("invalid semester id")
+	ErrSemesterNameRequired         = errors.New("semester name is required")
+	ErrSemesterYearRequired         = errors.New("semester year_id is required")
+	ErrLinkInvalidLanguages         = errors.New("link languages must be ar, fr, and/or en")
 )
 
 // Contributions Errors
@@ -90,5 +116,11 @@ var (
 	ErrFeedbackInvalidStatus             = errors.New("status must be new, read, or rejected")
 	ErrFeedbackInvalidRating             = errors.New("rating should be between 1 and 5")
 	ErrFeedbackCategoryAndRatingRequired = errors.New("category and rating are required")
-	ErrFeedbackInvalidCategory           = errors.New("category must be one of the following : ui/ux or content or functionality or performance or accessibility")
+	ErrFeedbackInvalidCategory           = errors.New("category must be one of the following : ui/ux or content or functionality or performance or accessibility or other")
+
+	ErrSuggestionNotFound                   = errors.New("suggestion not found")
+	ErrSuggestionInvalidID                  = errors.New("invalid suggestion id")
+	ErrSuggestionInvalidStatus              = errors.New("status must be new, read, or rejected")
+	ErrSuggestionCategoryAndDescRequired    = errors.New("category and description are required")
+	ErrSuggestionInvalidCategory            = errors.New("category must be one of the following : feature or ux or content or performance or other")
 )

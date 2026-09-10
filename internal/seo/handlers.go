@@ -9,9 +9,9 @@ import (
 	"strings"
 	"time"
 
-	"infolinks-backend/internal/errs"
-	"infolinks-backend/internal/middleware"
-	"infolinks-backend/internal/service"
+	"lu-links/internal/errs"
+	"lu-links/internal/middleware"
+	"lu-links/internal/service"
 )
 
 // Handler serves server-rendered SEO pages.

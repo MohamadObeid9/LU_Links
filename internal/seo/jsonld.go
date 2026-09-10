@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"infolinks-backend/internal/repository"
+	"lu-links/internal/repository"
 )
 
 func buildCourseJSONLD(baseURL string, data *repository.CoursePageData, canonical string) string {
@@ -31,7 +31,7 @@ func buildCourseJSONLD(baseURL string, data *repository.CoursePageData, canonica
 				"url":        canonical,
 				"provider": map[string]any{
 					"@type": "Organization",
-					"name":  "Le CNAM Liban — Info Links",
+					"name":  "Le Université Libanaise — LU Links",
 				},
 				"description": BuildCourseDescription(data),
 			},

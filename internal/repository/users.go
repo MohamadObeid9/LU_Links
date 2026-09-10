@@ -7,8 +7,8 @@ import (
 	"errors"
 	"fmt"
 
-	"infolinks-backend/internal/errs"
-	"infolinks-backend/internal/models"
+	"lu-links/internal/errs"
+	"lu-links/internal/models"
 
 	"github.com/jackc/pgx/v5/pgconn"
 )
@@ -71,6 +71,7 @@ func (r *postgresUserRepository) AdoptGuest(ctx context.Context, guestID int, us
 		reassignReportsQuery,
 		reassignContributionsQuery,
 		reassignFeedbackQuery,
+		reassignSuggestionsQuery,
 		reassignFavoriteEventsQuery,
 		reassignSearchEventsQuery,
 		reassignBrowseEventsQuery,
@@ -90,6 +91,23 @@ func (r *postgresUserRepository) AdoptGuest(ctx context.Context, guestID int, us
 		return fmt.Errorf("commit adopt guest: %w", err)
 	}
 	return nil
+}
+
+// DeleteExpiredGuests removes guest rows older than maxAgeDays (by created_at).
+// Related analytics rows cascade; submissions that allow null user_id are retained.
+func (r *postgresUserRepository) DeleteExpiredGuests(ctx context.Context, maxAgeDays int) (int64, error) {
+	if maxAgeDays <= 0 {
+		return 0, fmt.Errorf("delete expired guests: maxAgeDays must be positive")
+	}
+	res, err := r.db.ExecContext(ctx, deleteExpiredGuestsQuery, maxAgeDays)
+	if err != nil {
+		return 0, fmt.Errorf("delete expired guests: %w", err)
+	}
+	n, err := res.RowsAffected()
+	if err != nil {
+		return 0, fmt.Errorf("delete expired guests rows affected: %w", err)
+	}
+	return n, nil
 }
 
 func (r *postgresUserRepository) CreateUser(ctx context.Context, u models.User) (models.User, error) {
@@ -121,6 +139,17 @@ func (r *postgresUserRepository) GetByCredentials(ctx context.Context, u models.
 			return models.User{}, errs.ErrUserNotFound
 		}
 		return models.User{}, fmt.Errorf("get user by credentials: %w", err)
+	}
+	return user, nil
+}
+
+func (r *postgresUserRepository) UpdatePreferences(ctx context.Context, userID int, lang, theme string) (models.User, error) {
+	user, err := scanUser(r.db.QueryRowContext(ctx, updatePreferencesQuery, userID, lang, theme))
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return models.User{}, errs.ErrUserNotFound
+		}
+		return models.User{}, fmt.Errorf("update preferences: %w", err)
 	}
 	return user, nil
 }

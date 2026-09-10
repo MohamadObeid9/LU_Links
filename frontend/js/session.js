@@ -14,6 +14,7 @@ import { apiRequest, formatApiError, logApiError } from "./supabase.js";
 import { openModal, closeModal } from "./modals.js";
 import { esc, setBtnLoading } from "./ui.js";
 import { showToast } from "./export.js";
+import { t } from "./i18n.js";
 
 // Action to replay once the visitor finishes signing up / signing in.
 let _pendingAction = null;
@@ -79,13 +80,14 @@ function applyStudentUser(user) {
   } else {
     _forgetStudentIdentity();
   }
+  if (user) window.applyUserPreferences?.(user);
   renderStudentBanner();
   repaintFavoriteStars();
   // Content may already be on screen (session and /api/content race). Re-paint
   // so link hrefs match the session: real URLs for students, "#" for guests.
   if ((AppState.dbPrograms && AppState.dbPrograms.length) || (AppState.dbExtra && AppState.dbExtra.length)) {
     window.renderCourses?.();
-    window.renderExtra?.();
+    if (AppState.currentProg === "extra") window.renderExtra?.();
   }
 }
 
@@ -101,7 +103,8 @@ async function refreshStudentProfile() {
     applyStudentUser(user);
     return user;
   } catch (err) {
-    if (err?.status === 401) {
+    // 401 = bad/expired token; 404 kept for older backends that returned not-found.
+    if (err?.status === 401 || err?.status === 404) {
       await resetToGuest();
       return null;
     }
@@ -126,10 +129,9 @@ async function resetToGuest() {
 }
 
 async function bootstrapStudentSession() {
-  if (AppState.adminLoggedIn) {
-    renderStudentBanner();
-    return;
-  }
+  // Always validate/refresh the student token — even when an admin is logged in
+  // in the same browser. Otherwise a stale JWT after `docker compose down -v`
+  // still authorizes contributions/reports for a deleted user_id.
   if (_bootstrapping) return _bootstrapping;
 
   _bootstrapping = (async () => {
@@ -142,7 +144,7 @@ async function bootstrapStudentSession() {
       if (!AppState.studentToken) await createGuestSession();
       if (AppState.studentToken) await refreshStudentProfile();
       // Bind or record the visit now that studentUser.id is known.
-      await window.trackVisit?.();
+      if (!AppState.adminLoggedIn) await window.trackVisit?.();
     } catch (err) {
       logApiError(err, "studentSession");
     }
@@ -166,7 +168,8 @@ function onStudentTokenRejected() {
  * signup/login modal opens and `retry` runs after a successful sign-in.
  */
 function requireStudent(retry) {
-  if (AppState.adminLoggedIn) return true;
+  // Admin chrome must not skip student identity — contribute/report use the
+  // student JWT, which must refer to a row that still exists.
   if (isRegisteredStudent()) return true;
 
   if (_bootstrapping) {
@@ -215,24 +218,22 @@ function _renderAuthModal({ mode = "signup", error = "", values = {} } = {}) {
   const last = values.last_name || "";
   const number = values.number || (isSignup ? String(_randomNumber()) : "");
 
-  openModal(`<h2>${isSignup ? "🎓 Create your student profile" : "👋 Welcome back"}</h2>
-  <div class="auth-mode-toggle" role="tablist" aria-label="Account mode">
-    <button type="button" role="tab" class="auth-mode-btn ${isSignup ? "active" : ""}" aria-selected="${isSignup}" onclick="switchStudentAuthMode('signup')">Sign up</button>
-    <button type="button" role="tab" class="auth-mode-btn ${isSignup ? "" : "active"}" aria-selected="${!isSignup}" onclick="switchStudentAuthMode('signin')">Sign in</button>
+  openModal(`<h2>${esc(isSignup ? t("auth_signup_title") : t("auth_signin_title"))}</h2>
+  <div class="auth-mode-toggle" role="tablist" aria-label="${esc(t("auth_mode_aria"))}">
+    <button type="button" role="tab" class="auth-mode-btn ${isSignup ? "active" : ""}" aria-selected="${isSignup}" onclick="switchStudentAuthMode('signup')">${esc(t("auth_tab_signup"))}</button>
+    <button type="button" role="tab" class="auth-mode-btn ${isSignup ? "" : "active"}" aria-selected="${!isSignup}" onclick="switchStudentAuthMode('signin')">${esc(t("auth_tab_signin"))}</button>
   </div>
-  <p class="auth-hint">${isSignup
-      ? "No email, no password — your first name, last name and a number between 1 and 100 are your login."
-      : "Enter the name and number you signed up with."}</p>
-  <label for="stFirst">First name</label>
-  <input type="text" id="stFirst" autocomplete="given-name" placeholder="ziad" value="${esc(first)}"/>
-  <label for="stLast">Last name</label>
-  <input type="text" id="stLast" autocomplete="family-name" placeholder="baroudi" value="${esc(last)}"/>
-  <label for="stNumber">Your number (1–100)</label>
-  <input type="number" id="stNumber" min="1" max="100" step="1" value="${esc(number)}"/>
+  <p class="auth-hint">${esc(isSignup ? t("auth_signup_hint") : t("auth_signin_hint"))}</p>
+  <label for="stFirst">${esc(t("auth_label_first"))}</label>
+  <input type="text" id="stFirst" autocomplete="given-name" placeholder="${esc(t("auth_ph_first"))}" value="${esc(first)}"/>
+  <label for="stLast">${esc(t("auth_label_last"))}</label>
+  <input type="text" id="stLast" autocomplete="family-name" placeholder="${esc(t("auth_ph_last"))}" value="${esc(last)}"/>
+  <label for="stNumber">${esc(t("auth_label_number"))}</label>
+  <input type="number" id="stNumber" min="1" max="100" step="1" placeholder="${esc(t("auth_ph_number"))}" value="${esc(number)}"/>
   <div class="err" id="stAuthErr">${error ? esc(error) : ""}</div>
   <div class="modal-actions">
-    <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
-    <button class="btn btn-primary" onclick="submitStudentAuth('${isSignup ? "signup" : "signin"}')">${isSignup ? "Create profile" : "Sign in"}</button>
+    <button class="btn btn-ghost" onclick="closeModal()">${esc(t("btn_cancel"))}</button>
+    <button class="btn btn-primary" onclick="submitStudentAuth('${isSignup ? "signup" : "signin"}')">${esc(isSignup ? t("auth_btn_create") : t("auth_btn_signin"))}</button>
   </div>`);
 }
 
@@ -258,17 +259,17 @@ async function submitStudentAuth(mode) {
   const values = _readAuthValues();
 
   if (!values.first_name || !values.last_name) {
-    _setAuthError("Please enter both your first and last name.");
+    _setAuthError(t("auth_err_names"));
     return;
   }
   const number = parseInt(values.number, 10);
   if (!Number.isInteger(number) || number < 1 || number > 100) {
-    _setAuthError("Pick a whole number between 1 and 100.");
+    _setAuthError(t("auth_err_number"));
     return;
   }
 
   const btn = document.querySelector("#modalBox .btn-primary");
-  setBtnLoading(btn, true, isSignup ? "Creating…" : "Signing in…");
+  setBtnLoading(btn, true, isSignup ? t("auth_loading_create") : t("auth_loading_signin"));
   try {
     // The guest token rides along automatically: register claims that row,
     // login reassigns its page views onto the existing student.
@@ -293,8 +294,8 @@ async function submitStudentAuth(mode) {
     const handle = studentHandle();
     showToast(
       isSignup
-        ? `Profile created — welcome, ${handle || "student"}!`
-        : `Signed in as ${handle || "student"}`,
+        ? t("toast_profile_created", { handle: handle || t("auth_fallback_student") })
+        : t("toast_signed_in", { handle: handle || t("auth_fallback_student") }),
     );
 
     if (isSignup) {
@@ -321,7 +322,12 @@ async function submitStudentAuth(mode) {
       _renderAuthModal({
         mode: "signup",
         values: { ...values, number: String(suggestion) },
-        error: `${values.first_name} ${values.last_name} ${number} is already taken — that name + number pair must be unique. Try another number, e.g. ${suggestion}.`,
+        error: t("auth_err_taken", {
+          first: values.first_name,
+          last: values.last_name,
+          number,
+          suggestion,
+        }),
       });
       return;
     }
@@ -329,16 +335,16 @@ async function submitStudentAuth(mode) {
       _renderAuthModal({
         mode: "signup",
         values,
-        error: "No student with that name and number yet. Sign up instead — your details are already filled in.",
+        error: t("auth_err_not_found"),
       });
       return;
     }
     if (err?.status === 400) {
-      _setAuthError(formatApiError(err, "Please check your details and try again."));
+      _setAuthError(formatApiError(err, t("auth_err_check")));
       return;
     }
     logApiError(err, isSignup ? "studentRegister" : "studentLogin");
-    _setAuthError(formatApiError(err, "Something went wrong. Please try again."));
+    _setAuthError(formatApiError(err, t("auth_err_generic")));
   } finally {
     setBtnLoading(btn, false);
   }
@@ -347,7 +353,7 @@ async function submitStudentAuth(mode) {
 async function signOutStudent() {
   await resetToGuest();
   if (AppState.currentProg === "favorites") window.selectProg?.("all");
-  showToast("Signed out.");
+  showToast(t("toast_signed_out"));
   if (AppState.studentToken) {
     await refreshStudentProfile().catch((err) =>
       logApiError(err, "studentSession"),
@@ -366,10 +372,10 @@ function renderStudentBanner() {
     return;
   }
   el.innerHTML = handle
-    ? `<span class="student-welcome-text">👋 Welcome, <strong>${esc(handle)}</strong></span>
-       <button type="button" class="student-welcome-btn" data-action="studentSignOut">Sign out</button>`
-    : `<span class="student-welcome-text">Browsing as a guest — sign up to open links, report issues and save courses.</span>
-       <button type="button" class="student-welcome-btn" data-action="studentSignIn">Sign up / Sign in</button>`;
+    ? `<span class="student-welcome-text">👋 ${esc(t("welcome_hi", { handle }))}</span>
+       <button type="button" class="student-welcome-btn" data-action="studentSignOut">${esc(t("sign_out"))}</button>`
+    : `<span class="student-welcome-text">${esc(t("guest_banner"))}</span>
+       <button type="button" class="student-welcome-btn" data-action="studentSignIn">${esc(t("sign_in"))}</button>`;
   el.hidden = false;
 }
 
@@ -396,7 +402,7 @@ function repaintFavoriteStars() {
     const id = card.id.replace("course-card-", "");
     const isFav = AppState.favorites.has(String(id));
     btn.classList.toggle("active", isFav);
-    btn.title = isFav ? "Remove from My Courses" : "Add to My Courses";
+    btn.title = isFav ? t("fav_remove") : t("fav_add");
   });
   if (AppState.currentProg === "favorites") window.renderCourses?.();
 }

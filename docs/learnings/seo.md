@@ -94,7 +94,7 @@ All user-facing strings escaped via template — prevents XSS in rendered pages.
 
 - Include course name, code, content types (TD, examens, …)
 - Truncate if over ~65 / ~160 chars
-- French copy targeting CNAM Liban search terms
+- French (and Arabic) copy targeting Lebanese University search terms
 
 Derived from repository data (`CoursePageData`, link content types).
 

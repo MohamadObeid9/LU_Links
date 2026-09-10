@@ -6,9 +6,9 @@ import (
 	"strconv"
 	"strings"
 
-	"infolinks-backend/internal/errs"
-	"infolinks-backend/internal/models"
-	"infolinks-backend/internal/repository"
+	"lu-links/internal/errs"
+	"lu-links/internal/models"
+	"lu-links/internal/repository"
 )
 
 type LinkService struct {
@@ -25,6 +25,11 @@ func (s *LinkService) Create(ctx context.Context, link models.Link) error {
 	if link.Label == "" || link.URL == "" {
 		return errs.ErrLinkURLAndLabelRequired
 	}
+	langs, err := NormalizeLinkLanguages(link.Languages)
+	if err != nil {
+		return err
+	}
+	link.Languages = langs
 
 	if err := s.repo.Create(ctx, link); err != nil {
 		return fmt.Errorf("create link: %w", err)
@@ -50,6 +55,11 @@ func (s *LinkService) Update(ctx context.Context, link models.Link, idStr string
 	if err != nil || id <= 0 {
 		return errs.ErrLinkInvalidID
 	}
+	langs, err := NormalizeLinkLanguages(link.Languages)
+	if err != nil {
+		return err
+	}
+	link.Languages = langs
 	if err := s.repo.Update(ctx, link, id); err != nil {
 		return fmt.Errorf("update link: %w", err)
 	}

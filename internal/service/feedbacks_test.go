@@ -6,8 +6,8 @@ import (
 	"reflect"
 	"testing"
 
-	"infolinks-backend/internal/errs"
-	"infolinks-backend/internal/models"
+	"lu-links/internal/errs"
+	"lu-links/internal/models"
 )
 
 // fakeFeedbackRepo implements repository.FeedbackRepository for service tests.
@@ -159,6 +159,13 @@ func TestFeedbackService_Create(t *testing.T) {
 			createErr:    nil,
 			err:          nil,
 			resultWanted: &models.Feedback{Category: "accessibility", Rating: 3, Message: "nice"},
+		},
+		{
+			name:         "accept valid category: other",
+			feedback:     models.Feedback{Category: "other", Rating: 3, Message: "nice"},
+			createErr:    nil,
+			err:          nil,
+			resultWanted: &models.Feedback{Category: "other", Rating: 3, Message: "nice"},
 		},
 		{
 			name:         "repo create error",

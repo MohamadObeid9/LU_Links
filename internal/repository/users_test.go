@@ -6,8 +6,8 @@ import (
 	"reflect"
 	"testing"
 
-	"infolinks-backend/internal/errs"
-	"infolinks-backend/internal/models"
+	"lu-links/internal/errs"
+	"lu-links/internal/models"
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -167,6 +167,7 @@ func TestUserRepository_AdoptGuest(t *testing.T) {
 		reassignReportsQuery,
 		reassignContributionsQuery,
 		reassignFeedbackQuery,
+		reassignSuggestionsQuery,
 		reassignFavoriteEventsQuery,
 		reassignSearchEventsQuery,
 		reassignBrowseEventsQuery,
@@ -214,6 +215,28 @@ func TestUserRepository_AdoptGuest(t *testing.T) {
 
 		err := repo.AdoptGuest(context.Background(), guestID, userID)
 		assertRepoErr(t, mock, err, errs.ErrDatabaseDown)
+	})
+}
+
+func TestUserRepository_DeleteExpiredGuests(t *testing.T) {
+	t.Run("deletes guests older than max age", func(t *testing.T) {
+		repo, mock := newTestUserRepo(t)
+		mock.ExpectExec(deleteExpiredGuestsQuery).WithArgs(100).
+			WillReturnResult(sqlmock.NewResult(0, 4))
+		n, err := repo.DeleteExpiredGuests(context.Background(), 100)
+		assertRepoErr(t, mock, err, nil)
+		if n != 4 {
+			t.Fatalf("deleted = %d, want 4", n)
+		}
+	})
+
+	t.Run("rejects non-positive max age", func(t *testing.T) {
+		repo, mock := newTestUserRepo(t)
+		_, err := repo.DeleteExpiredGuests(context.Background(), 0)
+		if err == nil {
+			t.Fatal("expected error")
+		}
+		assertRepoErr(t, mock, nil, nil)
 	})
 }
 

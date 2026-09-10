@@ -5,8 +5,8 @@ import (
 	"database/sql"
 	"fmt"
 
-	"infolinks-backend/internal/errs"
-	"infolinks-backend/internal/models"
+	"lu-links/internal/errs"
+	"lu-links/internal/models"
 )
 
 type postgresContributionRepository struct {
@@ -49,6 +49,9 @@ func (c *postgresContributionRepository) Update(ctx context.Context, status stri
 
 func (c *postgresContributionRepository) Create(ctx context.Context, contribution models.Contribution) error {
 	if _, err := c.db.ExecContext(ctx, insertContributionQuery, contribution.CourseName, contribution.LinkURL, contribution.Note, contribution.UserID); err != nil {
+		if isForeignKeyViolation(err) {
+			return errs.ErrUserNotFound
+		}
 		return fmt.Errorf("insert contribution: %w", err)
 	}
 	return nil
