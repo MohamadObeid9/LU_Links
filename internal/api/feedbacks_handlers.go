@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"strings"
 
-	"infolinks-backend/internal/errs"
-	"infolinks-backend/internal/models"
+	"lu-links/internal/errs"
+	"lu-links/internal/models"
 )
 
 func (h *Handler) handlePostFeedback(w http.ResponseWriter, r *http.Request) {
@@ -74,7 +74,7 @@ func mapPostFeedbackErr(h *Handler, w http.ResponseWriter, r *http.Request, err 
 	case errors.Is(err, errs.ErrFeedbackInvalidRating):
 		writeJSONError(w, r, http.StatusBadRequest, "Rating should be between 1 and 5")
 	case errors.Is(err, errs.ErrFeedbackInvalidCategory):
-		writeJSONError(w, r, http.StatusBadRequest, "Category must be one of the following : ui/ux or content or functionality or performance or accessibility")
+		writeJSONError(w, r, http.StatusBadRequest, "Category must be one of the following : ui/ux or content or functionality or performance or accessibility or other")
 	default:
 		h.LoggerWithID(r).Error("create feedback failed", "error", err)
 		writeJSONError(w, r, http.StatusInternalServerError, "Internal server error")

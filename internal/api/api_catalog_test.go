@@ -101,7 +101,7 @@ func TestHandleAPIDocs(t *testing.T) {
 	if !strings.HasPrefix(rr.Header().Get("Content-Type"), "text/markdown") {
 		t.Fatalf("Content-Type: got %q", rr.Header().Get("Content-Type"))
 	}
-	if !strings.Contains(rr.Body.String(), "# Info Links API") {
+	if !strings.Contains(rr.Body.String(), "# LU Links API") {
 		t.Fatalf("body: %s", rr.Body.String())
 	}
 }

@@ -7,10 +7,10 @@ import (
 	"net/http"
 	"strings"
 
-	"infolinks-backend/internal/middleware"
-	"infolinks-backend/internal/models"
-	"infolinks-backend/internal/service"
-	"infolinks-backend/internal/webbotauth"
+	"lu-links/internal/middleware"
+	"lu-links/internal/models"
+	"lu-links/internal/service"
+	"lu-links/internal/webbotauth"
 )
 
 type Handler struct {
@@ -30,10 +30,12 @@ type Handler struct {
 	contentService      contentService
 	pageViewService     pageViewService
 	feedbackService     feedbackService
+	suggestionService   suggestionService
 	linkClickService    linkClickService
 	contributionService contributionService
 	extraSectionService extraSectionService
 	extraLinkService    extraLinkService
+	hierarchyService    hierarchyService
 }
 
 type Dependencies struct {
@@ -51,11 +53,13 @@ type Dependencies struct {
 	CourseService       courseService
 	ContentService      contentService
 	FeedbackService     feedbackService
+	SuggestionService   suggestionService
 	PageViewService     pageViewService
 	LinkClickService    linkClickService
 	ContributionService contributionService
 	ExtraSectionService extraSectionService
 	ExtraLinkService    extraLinkService
+	HierarchyService    hierarchyService
 }
 
 type dbPinger interface {
@@ -64,6 +68,11 @@ type dbPinger interface {
 
 type contentService interface {
 	Get(ctx context.Context) ([]byte, error)
+	GetWithETag(ctx context.Context, ifNoneMatch string) (body []byte, etag string, err error)
+	GetHierarchy(ctx context.Context, ifNoneMatch string) (body []byte, etag string, err error)
+	GetOffering(ctx context.Context, offeringID int, ifNoneMatch string) (body []byte, etag string, err error)
+	Search(ctx context.Context, q string, limit int) ([]byte, error)
+	GetCoursesByIDs(ctx context.Context, ids []int) ([]byte, error)
 	GetUncached(ctx context.Context) ([]byte, error)
 	Invalidate()
 }
@@ -73,6 +82,7 @@ type userService interface {
 	RegisterUser(ctx context.Context, guestID int, u models.User) (models.User, error)
 	LoginUser(ctx context.Context, guestID int, u models.User) (models.User, error)
 	GetUser(ctx context.Context, userID int) (models.User, error)
+	UpdatePreferences(ctx context.Context, userID int, lang, theme string) (models.User, error)
 	AddFavorite(ctx context.Context, userID int, courseIDStr string) error
 	RemoveFavorite(ctx context.Context, userID int, courseIDStr string) error
 	ListStudents(ctx context.Context, limit int, offset int, q string) ([]models.UserListItem, error)
@@ -102,9 +112,39 @@ type linkService interface {
 }
 
 type courseService interface {
-	Delete(ctx context.Context, idStr, placementStr string) error
+	Delete(ctx context.Context, idStr string) error
 	Create(ctx context.Context, course models.Course) error
 	Update(ctx context.Context, patch models.CoursePatch, idStr string) error
+}
+
+type hierarchyService interface {
+	ListFaculties(ctx context.Context) ([]models.Faculty, error)
+	CreateFaculty(ctx context.Context, f models.Faculty) error
+	UpdateFaculty(ctx context.Context, f models.Faculty, idStr string) error
+	DeleteFaculty(ctx context.Context, idStr string) error
+	ListBranches(ctx context.Context) ([]models.Branch, error)
+	CreateBranch(ctx context.Context, b models.Branch) error
+	UpdateBranch(ctx context.Context, b models.Branch, idStr string) error
+	DeleteBranch(ctx context.Context, idStr string) error
+	ListFacultyBranches(ctx context.Context) ([]models.FacultyBranch, error)
+	AddFacultyBranch(ctx context.Context, facultyIDStr, branchIDStr string) error
+	RemoveFacultyBranch(ctx context.Context, facultyIDStr, branchIDStr string) error
+	ListSpecialisations(ctx context.Context) ([]models.Specialisation, error)
+	CreateSpecialisation(ctx context.Context, sp models.Specialisation) error
+	UpdateSpecialisation(ctx context.Context, sp models.Specialisation, idStr string) error
+	DeleteSpecialisation(ctx context.Context, idStr string) error
+	ListBranchSpecialisations(ctx context.Context) ([]models.BranchSpecialisation, error)
+	CreateBranchSpecialisation(ctx context.Context, bs models.BranchSpecialisation) error
+	UpdateBranchSpecialisation(ctx context.Context, bs models.BranchSpecialisation, idStr string) error
+	DeleteBranchSpecialisation(ctx context.Context, idStr string) error
+	ListYears(ctx context.Context) ([]models.Year, error)
+	CreateYear(ctx context.Context, y models.Year) error
+	UpdateYear(ctx context.Context, y models.Year, idStr string) error
+	DeleteYear(ctx context.Context, idStr string) error
+	ListSemesters(ctx context.Context) ([]models.Semester, error)
+	CreateSemester(ctx context.Context, sem models.Semester) error
+	UpdateSemester(ctx context.Context, sem models.Semester, idStr string) error
+	DeleteSemester(ctx context.Context, idStr string) error
 }
 
 type reportService interface {
@@ -119,6 +159,13 @@ type feedbackService interface {
 	Create(ctx context.Context, feedback models.Feedback) error
 	Update(ctx context.Context, status string, idStr string) error
 	List(ctx context.Context, limit int, offset int, q string, status string) ([]models.Feedback, error)
+}
+
+type suggestionService interface {
+	Delete(ctx context.Context, idStr string) error
+	Create(ctx context.Context, suggestion models.Suggestion) error
+	Update(ctx context.Context, status string, idStr string) error
+	List(ctx context.Context, limit int, offset int, q string, status string) ([]models.Suggestion, error)
 }
 
 type contributionService interface {
@@ -188,6 +235,10 @@ func NewHandler(deps Dependencies) (*Handler, error) {
 		return nil, fmt.Errorf("feedback service is required")
 	}
 
+	if deps.SuggestionService == nil {
+		return nil, fmt.Errorf("suggestion service is required")
+	}
+
 	if deps.CourseService == nil {
 		return nil, fmt.Errorf("course service is required")
 	}
@@ -208,6 +259,10 @@ func NewHandler(deps Dependencies) (*Handler, error) {
 		return nil, fmt.Errorf("extra link service is required")
 	}
 
+	if deps.HierarchyService == nil {
+		return nil, fmt.Errorf("hierarchy service is required")
+	}
+
 	newHandler := Handler{
 		db:                  deps.DB,
 		logger:              deps.Logger,
@@ -222,12 +277,14 @@ func NewHandler(deps Dependencies) (*Handler, error) {
 		reportService:       deps.ReportService,
 		contentService:      deps.ContentService,
 		feedbackService:     deps.FeedbackService,
+		suggestionService:   deps.SuggestionService,
 		pageViewService:     deps.PageViewService,
 		supbaseAnonKey:      deps.SupabaseAnonKey,
 		linkClickService:    deps.LinkClickService,
 		extraLinkService:    deps.ExtraLinkService,
 		contributionService: deps.ContributionService,
 		extraSectionService: deps.ExtraSectionService,
+		hierarchyService:    deps.HierarchyService,
 		httpClient:          http.DefaultClient,
 	}
 

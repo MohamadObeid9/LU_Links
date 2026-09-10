@@ -40,7 +40,7 @@ func Load() (Config, error) {
 	}
 
 	if cfg.AppEnv == "development" {
-		cfg.DatabaseURL = getenv("LOCAL_DATABASE_URL", "postgres://postgres:postgres@localhost:5432/infolinks?sslmode=disable")
+		cfg.DatabaseURL = getenv("LOCAL_DATABASE_URL", "postgres://postgres:postgres@localhost:5432/lu_links?sslmode=disable")
 	}
 
 	if cfg.DatabaseURL == "" {

@@ -66,7 +66,7 @@ func skillDescriptionFromMarkdown(body []byte) string {
 			}
 		}
 	}
-	return "Info Links agent skill"
+	return "LU Links agent skill"
 }
 
 // handleAgentSkillsIndex serves /.well-known/agent-skills/index.json (RFC draft v0.2.0).

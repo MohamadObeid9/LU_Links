@@ -6,8 +6,8 @@ import (
 	"reflect"
 	"testing"
 
-	"infolinks-backend/internal/errs"
-	"infolinks-backend/internal/models"
+	"lu-links/internal/errs"
+	"lu-links/internal/models"
 )
 
 type fakeUserRepo struct {
@@ -35,6 +35,11 @@ type fakeUserRepo struct {
 	adoptGuestID int
 	adoptUserID  int
 	adoptErr     error
+
+	deleteExpiredCalls int
+	deleteExpiredDays  int
+	deleteExpiredN     int64
+	deleteExpiredErr   error
 
 	byIDCalls  int
 	byIDResult models.User
@@ -102,11 +107,32 @@ func (f *fakeUserRepo) GetByCredentials(ctx context.Context, u models.User) (mod
 	return f.credentialsResult, nil
 }
 
+func (f *fakeUserRepo) UpdatePreferences(ctx context.Context, userID int, lang, theme string) (models.User, error) {
+	if f.byIDErr != nil {
+		return models.User{}, f.byIDErr
+	}
+	u := f.byIDResult
+	u.ID = userID
+	u.PreferedLang = lang
+	u.PreferedTheme = theme
+	f.byIDResult = u
+	return u, nil
+}
+
 func (f *fakeUserRepo) AdoptGuest(ctx context.Context, guestID int, userID int) error {
 	f.adoptCalls++
 	f.adoptGuestID = guestID
 	f.adoptUserID = userID
 	return f.adoptErr
+}
+
+func (f *fakeUserRepo) DeleteExpiredGuests(ctx context.Context, maxAgeDays int) (int64, error) {
+	f.deleteExpiredCalls++
+	f.deleteExpiredDays = maxAgeDays
+	if f.deleteExpiredErr != nil {
+		return 0, f.deleteExpiredErr
+	}
+	return f.deleteExpiredN, nil
 }
 
 func (f *fakeUserRepo) AddFavorite(ctx context.Context, userID int, courseID int) error {
@@ -190,6 +216,48 @@ func TestUserService_CreateGuest(t *testing.T) {
 			}
 			if !reflect.DeepEqual(got, tt.wantResult) {
 				t.Fatalf("got %q, want %q", got, tt.wantResult)
+			}
+		})
+	}
+}
+
+func TestUserService_DeleteExpiredGuests(t *testing.T) {
+	tests := []struct {
+		name      string
+		days      int
+		repoN     int64
+		repoErr   error
+		wantDays  int
+		wantN     int64
+		wantErr   error
+		wantCalls int
+	}{
+		{name: "uses default 100 days", days: 0, repoN: 3, wantDays: 100, wantN: 3, wantCalls: 1},
+		{name: "passes positive days", days: 100, repoN: 1, wantDays: 100, wantN: 1, wantCalls: 1},
+		{name: "wraps repo error", days: 100, repoErr: errs.ErrDatabaseDown, wantDays: 100, wantErr: errs.ErrDatabaseDown, wantCalls: 1},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			repo := &fakeUserRepo{deleteExpiredN: tt.repoN, deleteExpiredErr: tt.repoErr}
+			svc := NewUserService(repo)
+			got, err := svc.DeleteExpiredGuests(context.Background(), tt.days)
+			if repo.deleteExpiredCalls != tt.wantCalls {
+				t.Fatalf("calls = %d, want %d", repo.deleteExpiredCalls, tt.wantCalls)
+			}
+			if repo.deleteExpiredDays != tt.wantDays {
+				t.Fatalf("days = %d, want %d", repo.deleteExpiredDays, tt.wantDays)
+			}
+			if tt.wantErr != nil {
+				if !errors.Is(err, tt.wantErr) {
+					t.Fatalf("got %v, want %v", err, tt.wantErr)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("DeleteExpiredGuests: %v", err)
+			}
+			if got != tt.wantN {
+				t.Fatalf("deleted = %d, want %d", got, tt.wantN)
 			}
 		})
 	}

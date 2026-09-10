@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"infolinks-backend/internal/errs"
+	"lu-links/internal/errs"
 )
 
 type fakeContentService struct {
@@ -26,6 +26,30 @@ func (f *fakeContentService) Get(ctx context.Context) ([]byte, error) {
 		return nil, f.getErr
 	}
 	return f.getResult, nil
+}
+
+func (f *fakeContentService) GetWithETag(ctx context.Context, ifNoneMatch string) ([]byte, string, error) {
+	body, err := f.Get(ctx)
+	if err != nil {
+		return nil, "", err
+	}
+	return body, `"test-etag"`, nil
+}
+
+func (f *fakeContentService) GetHierarchy(ctx context.Context, ifNoneMatch string) ([]byte, string, error) {
+	return f.GetWithETag(ctx, ifNoneMatch)
+}
+
+func (f *fakeContentService) GetOffering(ctx context.Context, offeringID int, ifNoneMatch string) ([]byte, string, error) {
+	return f.GetWithETag(ctx, ifNoneMatch)
+}
+
+func (f *fakeContentService) Search(ctx context.Context, q string, limit int) ([]byte, error) {
+	return f.Get(ctx)
+}
+
+func (f *fakeContentService) GetCoursesByIDs(ctx context.Context, ids []int) ([]byte, error) {
+	return f.Get(ctx)
 }
 
 func (f *fakeContentService) GetUncached(ctx context.Context) ([]byte, error) {

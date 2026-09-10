@@ -4,8 +4,8 @@ import (
 	"errors"
 	"net/http"
 
-	"infolinks-backend/internal/errs"
-	"infolinks-backend/internal/models"
+	"lu-links/internal/errs"
+	"lu-links/internal/models"
 )
 
 // ── Admin Protected Handlers ────────────────────────────────────────────────
@@ -53,6 +53,8 @@ func mapPostLinkErr(h *Handler, w http.ResponseWriter, r *http.Request, err erro
 	switch {
 	case errors.Is(err, errs.ErrLinkURLAndLabelRequired):
 		writeJSONError(w, r, http.StatusBadRequest, "Link url and link label are required")
+	case errors.Is(err, errs.ErrLinkInvalidLanguages):
+		writeJSONError(w, r, http.StatusBadRequest, "Link languages must be ar, fr, and/or en")
 	case errors.Is(err, errs.ErrLinkURLTaken):
 		writeJSONError(w, r, http.StatusConflict, "This course already has that URL")
 	default:

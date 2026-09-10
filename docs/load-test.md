@@ -1,17 +1,17 @@
-# Load Test Results
+# Load Test Results — LU Links
+
+Origin-only k6 results for `GET /api/content` on the LU Links Go API (not Cloudflare). Metrics below are unchanged from the 2026-09-01 runs.
 
 ## Environment (2026-09-01, after in-memory cache)
 
 | | |
 |---|---|
 | **Date** | 2026-09-01 (afternoon rerun) |
-| **Go version** | 1.26.5 |
-| **Stack** | Local `go run ./cmd/server` with `APP_ENV=production` (remote Supabase). Origin now keeps a 60s in-memory copy of `GET /api/content` with `singleflight` on miss. |
+| **Go version** | 1.26.5 (machine used for that run; repo `go.mod` tracks current toolchain separately) |
+| **Stack** | Local `go run ./cmd/server` with `APP_ENV=production` (remote Supabase). Origin keeps a 60s in-memory copy of `GET /api/content` with `singleflight` on miss. |
 | **Tool** | [k6](https://k6.io/) v2.2.0 |
 | **Machine** | Fedora Linux 44 (local dev) |
 | **Endpoint tested** | `GET /api/content` |
-
-Origin-only (k6 hits the Go process, not Cloudflare).
 
 ---
 

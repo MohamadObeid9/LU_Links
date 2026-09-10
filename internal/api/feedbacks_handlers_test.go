@@ -9,8 +9,8 @@ import (
 	"reflect"
 	"testing"
 
-	"infolinks-backend/internal/errs"
-	"infolinks-backend/internal/models"
+	"lu-links/internal/errs"
+	"lu-links/internal/models"
 )
 
 // fakeFeedbackService implements feedbackService for handler tests.
@@ -113,7 +113,7 @@ func TestHandlePostFeedback(t *testing.T) {
 			body:         `{"category":"hello","rating":1,"message":"nice"}`,
 			createErr:    errs.ErrFeedbackInvalidCategory,
 			statusWanted: http.StatusBadRequest,
-			errMsg:       "Category must be one of the following : ui/ux or content or functionality or performance or accessibility",
+			errMsg:       "Category must be one of the following : ui/ux or content or functionality or performance or accessibility or other",
 			wantCalls:    1,
 		},
 		{

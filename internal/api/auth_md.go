@@ -11,7 +11,7 @@ func (h *Handler) handleAuthMD(w http.ResponseWriter, r *http.Request) {
 	base := h.baseURL()
 	var b strings.Builder
 	b.WriteString("# auth.md\n\n")
-	b.WriteString("You are an agent registering for **Info Links**, a CNAM Liban student materials hub.\n\n")
+	b.WriteString("You are an agent registering for **LU Links**, a Lebanese University course materials hub.\n\n")
 	b.WriteString("- **Resource server (API):** `")
 	b.WriteString(base)
 	b.WriteString("`\n")
@@ -34,7 +34,7 @@ func (h *Handler) handleAuthMD(w http.ResponseWriter, r *http.Request) {
 	b.WriteString("4. Read `agent_auth`: `skill` (this file), `register_uri`, `identity_types_supported`, and the `anonymous` method (`claim_uri`, credential types).\n\n")
 
 	b.WriteString("## 2. Pick a method\n\n")
-	b.WriteString("Info Links supports **anonymous** registration only (no email, no ID-JAG).\n\n")
+	b.WriteString("LU Links supports **anonymous** registration only (no email, no ID-JAG).\n\n")
 	b.WriteString("| You have | Method |\n|---|---|\n")
 	b.WriteString("| Nothing yet | `anonymous` → `POST` `register_uri` (`/api/users/guest`) |\n")
 	b.WriteString("| Guest bearer + name/number | Claim → `POST` `claim_uri` (`/api/users/register`) |\n")
@@ -87,7 +87,7 @@ func (h *Handler) handleOAuthProtectedResource(w http.ResponseWriter, r *http.Re
 	base := h.baseURL()
 	doc := map[string]any{
 		"resource":                 base + "/",
-		"resource_name":            "Info Links API",
+		"resource_name":            "LU Links API",
 		"authorization_servers":    []string{base},
 		"scopes_supported":         []string{"student", "student:registered"},
 		"bearer_methods_supported": []string{"header"},
@@ -106,7 +106,7 @@ func (h *Handler) oauthAuthorizationServerMetadata() map[string]any {
 		"registration_endpoint":                 h.absURL("/api/users/register"),
 		"jwks_uri":                              h.absURL("/.well-known/jwks.json"),
 		"response_types_supported":              []string{"token"},
-		"grant_types_supported":                 []string{"urn:infolinks:grant-type:anonymous-guest"},
+		"grant_types_supported":                 []string{"urn:lu-links:grant-type:anonymous-guest"},
 		"token_endpoint_auth_methods_supported": []string{"none"},
 		"scopes_supported":                      []string{"student", "student:registered"},
 		"id_token_signing_alg_values_supported": []string{"HS256"},

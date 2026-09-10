@@ -6,8 +6,8 @@ import (
 	"strconv"
 	"strings"
 
-	"infolinks-backend/internal/errs"
-	"infolinks-backend/internal/service"
+	"lu-links/internal/errs"
+	"lu-links/internal/service"
 )
 
 type searchEventBody struct {

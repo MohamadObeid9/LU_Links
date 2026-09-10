@@ -3,8 +3,8 @@ package api
 import (
 	"context"
 	"encoding/json"
-	"infolinks-backend/internal/errs"
-	"infolinks-backend/internal/models"
+	"lu-links/internal/errs"
+	"lu-links/internal/models"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -27,6 +27,7 @@ type fakeUserService struct {
 
 	meResult models.User
 	meErr    error
+	prefsErr error
 
 	favoriteCalls    int
 	favoriteUserID   int
@@ -71,6 +72,18 @@ func (f *fakeUserService) GetUser(ctx context.Context, userID int) (models.User,
 		return models.User{}, f.meErr
 	}
 	return f.meResult, nil
+}
+
+func (f *fakeUserService) UpdatePreferences(ctx context.Context, userID int, lang, theme string) (models.User, error) {
+	if f.prefsErr != nil {
+		return models.User{}, f.prefsErr
+	}
+	u := f.meResult
+	u.ID = userID
+	u.PreferedLang = lang
+	u.PreferedTheme = theme
+	f.meResult = u
+	return u, nil
 }
 
 func (f *fakeUserService) AddFavorite(ctx context.Context, userID int, courseIDStr string) error {

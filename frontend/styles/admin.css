@@ -1,3 +1,27 @@
+/* Admin UI stays English LTR even when the site language is Arabic. */
+#view-admin,
+#view-admin-gate {
+    direction: ltr;
+    text-align: left;
+    unicode-bidi: isolate;
+}
+
+[dir="rtl"] #view-admin .search-wrap,
+[dir="rtl"] #view-admin-gate .search-wrap {
+    flex-direction: row;
+}
+
+[dir="rtl"] #view-admin .prog-tabs,
+[dir="rtl"] #view-admin .filter-row,
+[dir="rtl"] #view-admin .pick-card,
+[dir="rtl"] #view-admin .hero,
+[dir="rtl"] #view-admin-gate .prog-tabs,
+[dir="rtl"] #view-admin-gate .filter-row,
+[dir="rtl"] #view-admin-gate .pick-card,
+[dir="rtl"] #view-admin-gate .hero {
+    text-align: left;
+}
+
 .admin-header {
     display: flex;
     justify-content: space-between;
@@ -58,12 +82,37 @@
     border-radius: 8px;
     cursor: pointer;
     font-size: 0.85rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
 }
 
 .admin-tab.active {
     background: var(--accent);
     border-color: var(--accent);
     color: #fff;
+}
+
+.admin-tab .badge {
+    display: none;
+    margin-left: 0;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 6px;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    line-height: 18px;
+    text-align: center;
+    align-items: center;
+    justify-content: center;
+    background: #e5484d;
+    color: #fff;
+    flex-shrink: 0;
+}
+
+.admin-tab .badge.is-alert:not([hidden]) {
+    display: inline-flex;
 }
 
 .admin-search {
@@ -113,6 +162,50 @@
 
 .admin-table tr:hover td {
     background: var(--bg3);
+}
+
+/* Long feedback / report / contribution bodies stay readable without blowing up rows */
+.admin-long-text {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    line-height: 1.4;
+    max-width: 22rem;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+    overflow: hidden;
+    cursor: pointer;
+}
+
+.admin-long-text.is-expanded {
+    display: block;
+    -webkit-line-clamp: unset;
+    max-height: none;
+    max-width: min(36rem, 48vw);
+    white-space: pre-wrap;
+}
+
+.admin-long-text.is-empty {
+    cursor: default;
+    display: inline;
+    -webkit-line-clamp: unset;
+    overflow: visible;
+    max-width: none;
+}
+
+.admin-table .admin-url {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    max-width: 14rem;
+    display: inline-block;
+}
+
+.admin-table .admin-url.is-empty {
+    max-width: none;
+}
+
+.admin-table .admin-url-full {
+    display: none;
 }
 
 .tag {
@@ -567,13 +660,297 @@
     padding: 0 6px;
     border-radius: 999px;
     font-size: 0.72rem;
+    font-weight: 700;
     line-height: 18px;
     text-align: center;
-    background: rgba(255, 255, 255, 0.18);
+    background: #e5484d;
     color: #fff;
 }
 
-.badge.is-alert {
+.badge.is-alert:not([hidden]) {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     background: #e5484d;
     color: #fff;
+}
+
+/* ── Structure & courses admin ─────────────────────────────────────── */
+.admin-structure {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.admin-struct-head h3,
+.admin-offering-head h3 {
+    margin: 0 0 4px;
+    font-size: 1.15rem;
+    font-weight: 800;
+}
+
+.admin-struct-head.row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.admin-struct-sub {
+    margin: 0;
+    color: var(--muted);
+    font-size: 0.88rem;
+}
+
+.admin-struct-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 12px;
+}
+
+.admin-struct-panel {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 14px;
+}
+
+.admin-struct-panel-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+
+.admin-struct-panel-head h4 {
+    margin: 0;
+    font-size: 0.92rem;
+    font-weight: 700;
+}
+
+.admin-inline-form {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 12px;
+    align-items: center;
+}
+
+.admin-inline-form.compact {
+    margin-bottom: 8px;
+}
+
+.admin-inline-form input,
+.admin-inline-form select {
+    flex: 1 1 140px;
+    min-width: 120px;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 8px 12px;
+    border-radius: 8px;
+    font: inherit;
+    font-size: 0.88rem;
+}
+
+.admin-struct-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.admin-struct-list.tight {
+    gap: 4px;
+}
+
+.admin-struct-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 10px 12px;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+}
+
+.admin-struct-row > div,
+.admin-struct-row-main {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.admin-struct-row-main {
+    flex: 1;
+    background: none;
+    border: none;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+    padding: 0;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.admin-struct-row-main:hover strong {
+    color: var(--accent);
+}
+
+.admin-filter-bar {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 10px;
+    margin-bottom: 18px;
+}
+
+.admin-filter-field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--muted);
+    font-weight: 600;
+}
+
+.admin-filter-field select {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 8px 10px;
+    border-radius: 8px;
+    font: inherit;
+    font-size: 0.88rem;
+    text-transform: none;
+    letter-spacing: normal;
+    font-weight: 500;
+}
+
+.admin-offering-block {
+    margin-bottom: 28px;
+}
+
+.admin-offering-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 10px;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid var(--accent);
+}
+
+.admin-sem-block {
+    margin-bottom: 14px;
+}
+
+.admin-sem-label {
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--muted);
+    margin-bottom: 8px;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.admin-course-table {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.admin-course-row {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px 14px;
+}
+
+.admin-course-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.admin-course-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    min-width: 0;
+}
+
+.admin-course-name {
+    font-weight: 700;
+    font-size: 1rem;
+    color: var(--text);
+}
+
+.admin-course-title .course-code {
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 6px;
+    background: color-mix(in srgb, var(--accent) 18%, transparent);
+    color: var(--accent);
+    border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+}
+
+.admin-course-actions {
+    margin-top: 0;
+    flex-shrink: 0;
+    align-items: center;
+}
+
+.admin-optional-check {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.78rem;
+    color: var(--muted);
+    cursor: pointer;
+    user-select: none;
+    padding: 4px 8px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--bg3);
+}
+
+.admin-optional-check input {
+    accent-color: var(--accent);
+    margin: 0;
+}
+
+.admin-course-links {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+}
+
+.admin-course-links--empty {
+    border-top: none;
+    padding-top: 6px;
+    margin-top: 6px;
+}
+
+.admin-course-links .link-chip {
+    background: var(--bg);
+    max-width: 100%;
 }

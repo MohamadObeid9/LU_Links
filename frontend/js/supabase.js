@@ -59,7 +59,7 @@ function logApiError(err, context, status) {
 // Endpoints where the server derives the acting student from the token, so the
 // student session token wins over any admin token present in the same browser.
 const STUDENT_AUTH_PATHS =
-  /^\/api\/(page_views|link_clicks|search_events|browse_events|reports|feedback|contributions|users)(\/|$|\?)/;
+  /^\/api\/(page_views|link_clicks|search_events|browse_events|reports|feedback|suggestions|contributions|users)(\/|$|\?)/;
 
 function _usesStudentToken(url) {
   return STUDENT_AUTH_PATHS.test(String(url).split("?")[0]);
@@ -73,6 +73,7 @@ async function apiRequest(
     headers = {},
     timeoutMs = API_TIMEOUT_MS,
     cache,
+    rawResponse = false,
   } = {},
 ) {
   const controller = new AbortController();
@@ -98,6 +99,11 @@ async function apiRequest(
       signal: controller.signal,
       ...(cache ? { cache } : {}),
     });
+    const etag = res.headers.get("ETag") || "";
+    if (res.status === 304) {
+      if (rawResponse) return { status: 304, etag, data: null };
+      return null;
+    }
     const text = await res.text();
     if (!res.ok) {
       let apiErr = _buildApiError(
@@ -120,7 +126,9 @@ async function apiRequest(
       logApiError(apiErr, `${method} ${url}`, res.status);
       throw apiErr;
     }
-    return text ? JSON.parse(text) : [];
+    const data = text ? JSON.parse(text) : [];
+    if (rawResponse) return { status: res.status, etag, data };
+    return data;
   } catch (err) {
     if (err && err.name === "AbortError") {
       throw new Error("Request timed out. Please try again.");
@@ -166,7 +174,7 @@ async function sbAuth(email, password) {
 
 async function sbLogout() {
   AppState.sbToken = null;
-  localStorage.removeItem("infolinks_token");
+  localStorage.removeItem("lu_links_token");
 }
 
 async function trackVisit() {
@@ -208,21 +216,30 @@ function trackLinkClick(linkId, linkKind = "link") {
 
 let _searchTrackTimer = null;
 let _lastSearchTracked = "";
+const SEARCH_TRACK_DEBOUNCE_MS = 1800;
 
 function trackSearch(query) {
   if (AppState.adminLoggedIn || !AppState.studentToken) return;
   const q = String(query || "").trim().toLowerCase();
-  if (q.length < 2 || q === _lastSearchTracked) return;
   clearTimeout(_searchTrackTimer);
+  // Cleared box → allow the next settled term to be logged again.
+  if (q.length < 2) {
+    if (!q) _lastSearchTracked = "";
+    return;
+  }
   _searchTrackTimer = setTimeout(() => {
-    _lastSearchTracked = q;
+    const live = String(document.getElementById("searchInput")?.value || "")
+      .trim()
+      .toLowerCase();
+    if (live.length < 2 || live === _lastSearchTracked) return;
+    _lastSearchTracked = live;
     apiRequest(`/api/search_events`, {
       method: "POST",
-      body: { query: q },
+      body: { query: live },
     }).catch((e) => {
       if (e?.status === 401) window.onStudentTokenRejected?.();
     });
-  }, 600);
+  }, SEARCH_TRACK_DEBOUNCE_MS);
 }
 
 function trackBrowse(step) {

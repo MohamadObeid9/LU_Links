@@ -8,7 +8,7 @@ import (
 
 	"github.com/DATA-DOG/go-sqlmock"
 
-	"infolinks-backend/internal/errs"
+	"lu-links/internal/errs"
 )
 
 func newTestContentRepo(t *testing.T) (ContentRepository, sqlmock.Sqlmock) {

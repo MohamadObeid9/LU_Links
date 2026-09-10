@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"infolinks-backend/internal/repository"
+	"lu-links/internal/repository"
 )
 
 func TestRenderCoursePage(t *testing.T) {
@@ -18,7 +18,7 @@ func TestRenderCoursePage(t *testing.T) {
 		"schema.org",
 		"https://example.com/course/nfa008",
 		"Examens",
-		"Ouvrir dans Info Links",
+		"Ouvrir dans LU Links",
 	} {
 		if !strings.Contains(html, want) {
 			t.Fatalf("html missing %q", want)
@@ -54,7 +54,7 @@ func TestRenderCoursesIndex(t *testing.T) {
 	if err != nil {
 		t.Fatalf("renderCoursesIndex: %v", err)
 	}
-	for _, want := range []string{"Tous les cours CNAM", "NFA008", "Génie Info", "/courses"} {
+	for _, want := range []string{"Tous les cours LU", "NFA008", "Génie Info", "/courses"} {
 		if !strings.Contains(html, want) {
 			t.Fatalf("html missing %q", want)
 		}

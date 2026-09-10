@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"strings"
 
-	"infolinks-backend/internal/errs"
+	"lu-links/internal/errs"
 )
 
 type postgresSEORepository struct {

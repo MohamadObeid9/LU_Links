@@ -93,7 +93,7 @@ func (h *Handler) handleOpenAPI(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) handleAPIDocs(w http.ResponseWriter, r *http.Request) {
 	base := h.baseURL()
 	var b strings.Builder
-	b.WriteString("# Info Links API\n\n")
+	b.WriteString("# LU Links API\n\n")
 	b.WriteString("Machine-readable OpenAPI: [")
 	b.WriteString(base)
 	b.WriteString("/openapi.json](")
@@ -110,11 +110,11 @@ func (h *Handler) handleAPIDocs(w http.ResponseWriter, r *http.Request) {
 	b.WriteString(base)
 	b.WriteString("/healthz)\n\n")
 	b.WriteString("## Overview\n\n")
-	b.WriteString("Info Links exposes a JSON HTTP API for the CNAM Liban student materials hub.\n\n")
-	b.WriteString("- **Content** — `GET /api/content` returns the full program → course → link tree.\n")
+	b.WriteString("LU Links exposes a JSON HTTP API for the Lebanese University course materials hub.\n\n")
+	b.WriteString("- **Content** — `GET /api/content` returns the full faculty → course → link tree.\n")
 	b.WriteString("- **Students** — guest bootstrap, register, and login with first name + last name + number (1–100). No passwords.\n")
 	b.WriteString("- **Analytics** — page views, link clicks, search, and browse events (student JWT).\n")
-	b.WriteString("- **Submissions** — reports, feedback, and contributions (registered students).\n")
+	b.WriteString("- **Submissions** — reports, feedback, suggestions, and contributions (registered students).\n")
 	b.WriteString("- **Admin** — JWT from `POST /api/auth/login`; CRUD under `/api/admin/...`.\n\n")
 	b.WriteString("## Auth\n\n")
 	b.WriteString("| Audience | How |\n|---|---|\n")

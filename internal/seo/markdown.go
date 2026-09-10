@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	"infolinks-backend/internal/repository"
+	"lu-links/internal/repository"
 )
 
 func yamlFrontmatter(title, description string) string {
@@ -91,7 +91,7 @@ func renderCourseMarkdown(baseURL string, data *repository.CoursePageData) (stri
 	b.WriteString(" ?**\n\n")
 	b.WriteString("Les sections ci-dessus regroupent les liens étudiants (Drive, Telegram, Classroom). ")
 	b.WriteString("Ouvrez l'application pour accéder rapidement à tous les liens.\n\n")
-	b.WriteString("[Ouvrir dans Info Links](")
+	b.WriteString("[Ouvrir dans LU Links](")
 	b.WriteString(strings.TrimSuffix(baseURL, "/"))
 	b.WriteString("/?highlight=")
 	b.WriteString(strings.ToLower(data.Code))
@@ -149,9 +149,9 @@ func renderProgramMarkdown(baseURL string, data *repository.ProgramPageData) (st
 	if data == nil {
 		return "", fmt.Errorf("nil program data")
 	}
-	title := fmt.Sprintf("%s — cours & matériaux | CNAM Liban Info Links", data.Name)
+	title := fmt.Sprintf("%s — cours & matériaux | LU Links", data.Name)
 	desc := fmt.Sprintf(
-		"Liste des cours %s au CNAM Liban — codes, TD, cours, examens, sessions. Hub Info Links pour génie informatique et licence.",
+		"Liste des cours %s à l'Université Libanaise — codes, TD, cours, examens, sessions. Hub LU Links pour génie informatique et licence.",
 		data.Name,
 	)
 	base := strings.TrimSuffix(baseURL, "/")
@@ -161,7 +161,7 @@ func renderProgramMarkdown(baseURL string, data *repository.ProgramPageData) (st
 	b.WriteString("# ")
 	b.WriteString(data.Name)
 	b.WriteString("\n\n")
-	b.WriteString("Cours et matériaux CNAM Liban — TD, cours, examens, sessions, vidéos. Cliquez sur un code pour voir tous les liens.\n\n")
+	b.WriteString("Cours et matériaux Université Libanaise — TD, cours, examens, sessions, vidéos. Cliquez sur un code pour voir tous les liens.\n\n")
 	if len(data.Courses) == 0 {
 		b.WriteString("_Aucun cours listé._\n\n")
 	} else {
@@ -178,21 +178,21 @@ func renderProgramMarkdown(baseURL string, data *repository.ProgramPageData) (st
 		}
 		b.WriteByte('\n')
 	}
-	b.WriteString("[Ouvrir Info Links](")
+	b.WriteString("[Ouvrir LU Links](")
 	b.WriteString(base)
 	b.WriteString("/)\n")
 	return b.String(), nil
 }
 
 func renderCoursesIndexMarkdown(baseURL string, entries []repository.CourseIndexEntry) (string, error) {
-	title := "Tous les cours CNAM — codes & matériaux | Info Links"
-	desc := "Index des cours CNAM Liban (ISAE CNAM) : codes, TD, cours, examens, sessions, vidéos. Licence info, master, génie informatique."
+	title := "Tous les cours LU — codes & matériaux | LU Links"
+	desc := "Index des cours Université Libanaise : codes, TD, cours, examens, sessions, vidéos. Licence info, master, génie informatique."
 	base := strings.TrimSuffix(baseURL, "/")
 
 	var b strings.Builder
 	b.WriteString(yamlFrontmatter(title, desc))
-	b.WriteString("# Tous les cours CNAM\n\n")
-	b.WriteString("Index Info Links — codes cours, matériaux, TD, cours, examens, sessions et vidéos pour CNAM Liban et ISAE CNAM (licence info, master, génie informatique).\n\n")
+	b.WriteString("# Tous les cours LU\n\n")
+	b.WriteString("Index LU Links — codes cours, matériaux, TD, cours, examens, sessions et vidéos pour Université Libanaise (licence info, master, génie informatique).\n\n")
 	for _, e := range entries {
 		b.WriteString("- [")
 		b.WriteString(strings.ToUpper(e.Code))
@@ -210,7 +210,7 @@ func renderCoursesIndexMarkdown(baseURL string, entries []repository.CourseIndex
 		b.WriteString("\n")
 	}
 	b.WriteByte('\n')
-	b.WriteString("[Ouvrir Info Links](")
+	b.WriteString("[Ouvrir LU Links](")
 	b.WriteString(base)
 	b.WriteString("/)\n")
 	return b.String(), nil
@@ -219,9 +219,9 @@ func renderCoursesIndexMarkdown(baseURL string, entries []repository.CourseIndex
 func render404Markdown(baseURL string) string {
 	base := strings.TrimSuffix(baseURL, "/")
 	var b strings.Builder
-	b.WriteString(yamlFrontmatter("Cours introuvable | Info Links", "Code cours non trouvé sur Info Links CNAM Liban."))
+	b.WriteString(yamlFrontmatter("Cours introuvable | LU Links", "Code cours non trouvé sur LU Links Université Libanaise."))
 	b.WriteString("# Cours introuvable\n\n")
-	b.WriteString("Ce code cours n'existe pas sur Info Links.\n\n")
+	b.WriteString("Ce code cours n'existe pas sur LU Links.\n\n")
 	b.WriteString("- [Retour à l'accueil](")
 	b.WriteString(base)
 	b.WriteString("/)\n")
@@ -251,11 +251,11 @@ func ServeSPAMarkdown(w http.ResponseWriter, baseURL, path string) {
 func renderHomeMarkdown(baseURL string) string {
 	var b strings.Builder
 	b.WriteString(yamlFrontmatter(
-		"Info Links — matériaux de cours CNAM Liban",
-		"Hub étudiant Info Links : TD, cours, examens, sessions et vidéos pour les programmes CNAM Liban et ISAE CNAM.",
+		"LU Links — matériaux de cours Université Libanaise",
+		"Hub étudiant LU Links : TD, cours, examens, sessions et vidéos pour les programmes Université Libanaise.",
 	))
-	b.WriteString("# Info Links\n\n")
-	b.WriteString("Hub étudiant pour les matériaux de cours CNAM Liban (ISAE CNAM) — TD, cours, examens, sessions, vidéos et liens partagés.\n\n")
+	b.WriteString("# LU Links\n\n")
+	b.WriteString("Hub étudiant pour les matériaux de cours Université Libanaise — TD, cours, examens, sessions, vidéos et liens partagés.\n\n")
 	b.WriteString("## Browse\n\n")
 	b.WriteString("- [Tous les cours](")
 	b.WriteString(baseURL)
@@ -266,21 +266,21 @@ func renderHomeMarkdown(baseURL string) string {
 	b.WriteString("- [Signaler / contribuer](")
 	b.WriteString(baseURL)
 	b.WriteString("/report-submit)\n")
-	b.WriteString("- [Feedback](")
+	b.WriteString("- [Feedback / Suggestion](")
 	b.WriteString(baseURL)
-	b.WriteString("/feedback)\n")
+	b.WriteString("/feedback-suggestion)\n")
 	return b.String()
 }
 
 func renderAboutMarkdown(baseURL string) string {
 	var b strings.Builder
 	b.WriteString(yamlFrontmatter(
-		"À propos — Info Links",
-		"Info Links est un hub étudiant pour trouver rapidement les matériaux de cours CNAM Liban.",
+		"À propos — LU Links",
+		"LU Links est un hub étudiant pour trouver rapidement les matériaux de cours Université Libanaise.",
 	))
 	b.WriteString("# À propos\n\n")
-	b.WriteString("Info Links regroupe les liens étudiants (Drive, Telegram, Classroom, etc.) pour les cours CNAM Liban et ISAE CNAM.\n\n")
-	b.WriteString("Parcourez par programme, année et semestre, ou cherchez un code cours. Les étudiants inscrits peuvent ouvrir les liens, signaler des problèmes et contribuer de nouvelles ressources.\n\n")
+	b.WriteString("LU Links regroupe les liens étudiants (Drive, Telegram, Classroom, etc.) pour les cours Université Libanaise.\n\n")
+	b.WriteString("Parcourez par faculté, campus et spécialisation, ou cherchez un code cours. Les étudiants inscrits peuvent ouvrir les liens, signaler des problèmes et contribuer de nouvelles ressources.\n\n")
 	b.WriteString("- [Accueil](")
 	b.WriteString(baseURL)
 	b.WriteString("/)\n")

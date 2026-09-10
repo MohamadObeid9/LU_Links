@@ -11,6 +11,7 @@ const (
 
 	getUserByIDQuery          = `SELECT ` + userColumns + ` FROM users WHERE id = $1`
 	getUserByCredentialsQuery = `SELECT ` + userColumns + ` FROM users WHERE first_name = $1 AND last_name = $2 AND number = $3 AND is_guest = false`
+	updatePreferencesQuery    = `UPDATE users SET prefered_lang = $2, prefered_theme = $3, last_seen_at = now() WHERE id = $1 RETURNING ` + userColumns
 
 	// Sign-in cannot claim the guest row (that name already belongs to a student),
 	// so activity is moved across and the empty guest is deleted.
@@ -20,11 +21,17 @@ const (
 	reassignReportsQuery        = `UPDATE reports SET user_id = $2 WHERE user_id = $1`
 	reassignContributionsQuery  = `UPDATE contributions SET user_id = $2 WHERE user_id = $1`
 	reassignFeedbackQuery       = `UPDATE feedback SET user_id = $2 WHERE user_id = $1`
+	reassignSuggestionsQuery    = `UPDATE suggestions SET user_id = $2 WHERE user_id = $1`
 	reassignFavoriteEventsQuery = `UPDATE favorite_events SET user_id = $2 WHERE user_id = $1`
 	reassignSearchEventsQuery   = `UPDATE search_events SET user_id = $2 WHERE user_id = $1`
 	reassignBrowseEventsQuery   = `UPDATE browse_events SET user_id = $2 WHERE user_id = $1`
 	deleteGuestQuery            = `DELETE FROM users WHERE id = $1 AND is_guest = true`
-	touchLastSeenQuery          = `UPDATE users SET last_seen_at = now() WHERE id = $1`
+	// Guests that never signed up after maxAgeDays — cascade cleans their analytics rows.
+	deleteExpiredGuestsQuery = `
+		DELETE FROM users
+		WHERE is_guest = true
+		  AND created_at < now() - make_interval(days => $1)`
+	touchLastSeenQuery = `UPDATE users SET last_seen_at = now() WHERE id = $1`
 )
 
 // Favorites Queries
@@ -64,13 +71,26 @@ const (
 			               'opened ' || COALESCE(NULLIF(trim(el.label), ''), initcap(COALESCE(el.type, '')), 'a link')
 			                   || COALESCE(' in ' || es.title, '')
 			           ELSE
-			               'opened ' || COALESCE(l.label, 'a link')
-			                   || COALESCE(' in ' || co.name, '')
+			               'opened ' || COALESCE(NULLIF(trim(l.label), ''), initcap(COALESCE(l.type, '')), 'a link')
+			                   || COALESCE(' in ' || c.name, '')
+			                   || COALESCE(
+			                       (
+			                           SELECT ' · ' || f.name || ' · ' || b.name || ' · ' || sp.name
+			                           FROM semesters s
+			                           JOIN years y ON y.id = s.year_id
+			                           JOIN branch_specialisations bs ON bs.id = y.branch_specialisation_id
+			                           JOIN branches b ON b.id = bs.branch_id
+			                           JOIN specialisations sp ON sp.id = bs.specialisation_id
+			                           JOIN faculties f ON f.id = sp.faculty_id
+			                           WHERE s.id = c.semester_id
+			                       ),
+			                       ''
+			                   )
 			       END,
 			       lc.id, ''
 			FROM link_clicks lc
 			LEFT JOIN links l ON l.id = lc.link_id
-			LEFT JOIN courses co ON co.id = l.course_id
+			LEFT JOIN courses c ON c.id = l.course_id
 			LEFT JOIN extra_links el ON el.id = lc.extra_link_id
 			LEFT JOIN extra_sections es ON es.id = el.section_id
 			WHERE lc.user_id = $1
@@ -86,6 +106,10 @@ const (
 			SELECT 'feedback', f.created_at,
 			       'sent ' || f.category || ' feedback rated ' || f.rating || '/5', f.id, ''
 			FROM feedback f WHERE f.user_id = $1
+			UNION ALL
+			SELECT 'suggestion', s.created_at,
+			       'suggested ' || s.category || ' improvement', s.id, ''
+			FROM suggestions s WHERE s.user_id = $1
 			UNION ALL
 			SELECT CASE WHEN fe.action = 'added' THEN 'favorite_added' ELSE 'favorite_removed' END,
 			       fe.created_at,
@@ -152,6 +176,7 @@ const (
 			(SELECT COUNT(*) FROM reports WHERE status = 'open'),
 			(SELECT COUNT(*) FROM contributions WHERE status = 'pending'),
 			(SELECT COUNT(*) FROM feedback WHERE status = 'new'),
+			(SELECT COUNT(*) FROM suggestions WHERE status = 'new'),
 			(SELECT COUNT(DISTINCT user_id) FROM browse_events WHERE step = 'year' AND created_at >= now() - make_interval(days => $1)),
 			(SELECT COUNT(DISTINCT user_id) FROM browse_events WHERE step = 'list' AND created_at >= now() - make_interval(days => $1)),
 			(SELECT COUNT(DISTINCT u.id) FROM users u
@@ -265,32 +290,32 @@ const (
 		ORDER BY u.first_name ASC, u.last_name ASC, u.id ASC
 		LIMIT $1 OFFSET $2`
 
+	// Offering label: Faculty · Branch · Specialisation (kept as program_name in JSON for admin UI).
+	courseOfferingLabelSQL = `
+		COALESCE(
+			(SELECT f.name || ' · ' || b.name || ' · ' || sp.name
+			 FROM semesters s
+			 JOIN years y ON y.id = s.year_id
+			 JOIN branch_specialisations bs ON bs.id = y.branch_specialisation_id
+			 JOIN branches b ON b.id = bs.branch_id
+			 JOIN specialisations sp ON sp.id = bs.specialisation_id
+			 JOIN faculties f ON f.id = sp.faculty_id
+			 WHERE s.id = c.semester_id),
+			''
+		)`
+
 	analyticsTopCoursesQuery = `
-		SELECT c.id, c.name, c.code, COUNT(*)::int, COALESCE((
-			SELECT string_agg(DISTINCT pr.name, ' · ' ORDER BY pr.name)
-			FROM course_placements pl
-			JOIN semesters s ON s.id = pl.semester_id
-			JOIN years y ON y.id = s.year_id
-			JOIN programs pr ON pr.id = y.program_id
-			WHERE pl.course_id = c.id
-		), '')
+		SELECT c.id, c.name, c.code, COUNT(*)::int, ` + courseOfferingLabelSQL + `
 		FROM link_clicks lc
 		JOIN links l ON l.id = lc.link_id
 		JOIN courses c ON c.id = l.course_id
 		WHERE lc.clicked_at >= now() - make_interval(days => $1)
-		GROUP BY c.id, c.name, c.code
+		GROUP BY c.id, c.name, c.code, c.semester_id
 		ORDER BY COUNT(*) DESC, c.name ASC
 		LIMIT 50`
 
 	analyticsZeroClickCoursesQuery = `
-		SELECT c.id, c.name, c.code, 0, COALESCE((
-			SELECT string_agg(DISTINCT pr.name, ' · ' ORDER BY pr.name)
-			FROM course_placements pl
-			JOIN semesters s ON s.id = pl.semester_id
-			JOIN years y ON y.id = s.year_id
-			JOIN programs pr ON pr.id = y.program_id
-			WHERE pl.course_id = c.id
-		), '')
+		SELECT c.id, c.name, c.code, 0, ` + courseOfferingLabelSQL + `
 		FROM courses c
 		WHERE EXISTS (SELECT 1 FROM links l WHERE l.course_id = c.id)
 		  AND NOT EXISTS (
@@ -304,14 +329,7 @@ const (
 	analyticsZeroClickLinksQuery = `
 		SELECT kind, id, label, course_name, program_name FROM (
 			SELECT 'link'::text AS kind, l.id, COALESCE(l.label, 'Link') AS label, c.name AS course_name,
-			       COALESCE((
-				SELECT string_agg(DISTINCT pr.name, ' · ' ORDER BY pr.name)
-				FROM course_placements pl
-				JOIN semesters s ON s.id = pl.semester_id
-				JOIN years y ON y.id = s.year_id
-				JOIN programs pr ON pr.id = y.program_id
-				WHERE pl.course_id = c.id
-			       ), '') AS program_name
+			       ` + courseOfferingLabelSQL + ` AS program_name
 			FROM links l
 			JOIN courses c ON c.id = l.course_id
 			WHERE NOT EXISTS (
@@ -331,19 +349,12 @@ const (
 		LIMIT 50`
 
 	analyticsTopFavoritesQuery = `
-		SELECT c.id, c.name, c.code, COUNT(*)::int, COALESCE((
-			SELECT string_agg(DISTINCT pr.name, ' · ' ORDER BY pr.name)
-			FROM course_placements pl
-			JOIN semesters s ON s.id = pl.semester_id
-			JOIN years y ON y.id = s.year_id
-			JOIN programs pr ON pr.id = y.program_id
-			WHERE pl.course_id = c.id
-		), '')
+		SELECT c.id, c.name, c.code, COUNT(*)::int, ` + courseOfferingLabelSQL + `
 		FROM users u
 		CROSS JOIN LATERAL unnest(u.favorite_course_ids) AS cid
 		JOIN courses c ON c.id = cid
 		WHERE u.is_guest = false
-		GROUP BY c.id, c.name, c.code
+		GROUP BY c.id, c.name, c.code, c.semester_id
 		ORDER BY COUNT(*) DESC, c.name ASC
 		LIMIT 50`
 
@@ -367,7 +378,18 @@ const (
 		ORDER BY COUNT(*) DESC, query ASC
 		LIMIT 50`
 
-	insertSearchEventQuery = `INSERT INTO search_events (user_id, query) VALUES ($1, $2)`
+	// Drop recent prefix fragments from the same typer (e.g. "an"/"ang"/"ang32"
+	// while finishing "ang320"), then record the settled query.
+	insertSearchEventQuery = `
+		WITH pruned AS (
+			DELETE FROM search_events
+			WHERE user_id = $1
+			  AND created_at >= now() - interval '90 seconds'
+			  AND char_length(query) < char_length($2::text)
+			  AND $2::text LIKE query || '%'
+			RETURNING id
+		)
+		INSERT INTO search_events (user_id, query) VALUES ($1, $2)`
 	insertBrowseEventQuery = `INSERT INTO browse_events (user_id, step) VALUES ($1, $2)`
 )
 
@@ -386,32 +408,56 @@ const (
 
 // Courses Queries
 const (
-	getCourseByIDQuery      = `SELECT id, name, code, is_optional FROM courses WHERE id = $1`
-	deleteCourseQuery       = `DELETE FROM courses WHERE id = $1`
-	updateCourseQuery       = `UPDATE courses SET name = $1, code = $2, is_optional = $3 WHERE id = $4`
-	findCourseIDByCodeQuery = `
-		SELECT id FROM courses
-		WHERE lower(trim(code)) = lower(trim($1))
-		LIMIT 1`
-	insertCanonicalCourseQuery = `INSERT INTO courses (name, code, is_optional) VALUES ($1, $2, $3) RETURNING id`
-	insertCoursePlacementQuery = `
-		INSERT INTO course_placements (course_id, semester_id, display_order)
-		VALUES ($1, $2, $3)`
-	updateCoursePlacementQuery = `
-		UPDATE course_placements SET semester_id = $1, display_order = $2
-		WHERE id = $3 AND course_id = $4`
-	deleteCoursePlacementQuery = `DELETE FROM course_placements WHERE id = $1 AND course_id = $2`
-	deleteOrphanCourseQuery    = `
-		DELETE FROM courses c
-		WHERE c.id = $1
-		  AND NOT EXISTS (SELECT 1 FROM course_placements p WHERE p.course_id = c.id)`
+	getCourseByIDQuery = `SELECT id, name, code, is_optional, semester_id, display_order FROM courses WHERE id = $1`
+	deleteCourseQuery  = `DELETE FROM courses WHERE id = $1`
+	updateCourseQuery  = `UPDATE courses SET name = $1, code = $2, is_optional = $3, semester_id = $4, display_order = $5 WHERE id = $6`
+	insertCourseQuery  = `INSERT INTO courses (name, code, is_optional, semester_id, display_order) VALUES ($1, $2, $3, $4, $5)`
 )
 
 // Links Queries
 const (
 	deleteLinkQuery = `DELETE FROM links WHERE id = $1`
-	updateLinkQuery = `UPDATE links SET type = $1, url = $2, label = $3, note = $4, content_type = $5 WHERE id = $6`
-	insertLinkQuery = `INSERT INTO links (course_id, type, url, label, note, content_type, display_order) VALUES ($1, $2, $3, $4, $5, $6, $7)`
+	updateLinkQuery = `UPDATE links SET type = $1, url = $2, label = $3, note = $4, content_type = $5, languages = $6::jsonb WHERE id = $7`
+	insertLinkQuery = `INSERT INTO links (course_id, type, url, label, note, content_type, display_order, languages) VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb)`
+)
+
+// Hierarchy Queries
+const (
+	listFacultiesQuery  = `SELECT id, name, slug, display_order FROM faculties ORDER BY display_order ASC, id ASC`
+	insertFacultyQuery  = `INSERT INTO faculties (name, slug, display_order) VALUES ($1, $2, $3)`
+	updateFacultyQuery  = `UPDATE faculties SET name = $1, slug = $2, display_order = $3 WHERE id = $4`
+	deleteFacultyQuery  = `DELETE FROM faculties WHERE id = $1`
+
+	listBranchesQuery = `SELECT id, name, slug, display_order FROM branches ORDER BY display_order ASC, id ASC`
+	insertBranchQuery = `INSERT INTO branches (name, slug, display_order) VALUES ($1, $2, $3)`
+	updateBranchQuery = `UPDATE branches SET name = $1, slug = $2, display_order = $3 WHERE id = $4`
+	deleteBranchQuery = `DELETE FROM branches WHERE id = $1`
+
+	listFacultyBranchesQuery  = `SELECT faculty_id, branch_id FROM faculty_branches`
+	insertFacultyBranchQuery  = `INSERT INTO faculty_branches (faculty_id, branch_id) VALUES ($1, $2)`
+	deleteFacultyBranchQuery  = `DELETE FROM faculty_branches WHERE faculty_id = $1 AND branch_id = $2`
+	facultyBranchExistsQuery  = `SELECT EXISTS(SELECT 1 FROM faculty_branches WHERE faculty_id = $1 AND branch_id = $2)`
+
+	listSpecialisationsQuery = `SELECT id, faculty_id, name, slug, display_order FROM specialisations ORDER BY display_order ASC, id ASC`
+	insertSpecialisationQuery = `INSERT INTO specialisations (faculty_id, name, slug, display_order) VALUES ($1, $2, $3, $4)`
+	updateSpecialisationQuery = `UPDATE specialisations SET faculty_id = $1, name = $2, slug = $3, display_order = $4 WHERE id = $5`
+	deleteSpecialisationQuery = `DELETE FROM specialisations WHERE id = $1`
+	getSpecialisationFacultyQuery = `SELECT faculty_id FROM specialisations WHERE id = $1`
+
+	listBranchSpecialisationsQuery = `SELECT id, branch_id, specialisation_id, display_order FROM branch_specialisations ORDER BY display_order ASC, id ASC`
+	insertBranchSpecialisationQuery = `INSERT INTO branch_specialisations (branch_id, specialisation_id, display_order) VALUES ($1, $2, $3)`
+	updateBranchSpecialisationQuery = `UPDATE branch_specialisations SET branch_id = $1, specialisation_id = $2, display_order = $3 WHERE id = $4`
+	deleteBranchSpecialisationQuery = `DELETE FROM branch_specialisations WHERE id = $1`
+
+	listYearsQuery   = `SELECT id, branch_specialisation_id, name, display_order FROM years ORDER BY display_order ASC, id ASC`
+	insertYearQuery  = `INSERT INTO years (branch_specialisation_id, name, display_order) VALUES ($1, $2, $3)`
+	updateYearQuery  = `UPDATE years SET branch_specialisation_id = $1, name = $2, display_order = $3 WHERE id = $4`
+	deleteYearQuery  = `DELETE FROM years WHERE id = $1`
+
+	listSemestersQuery  = `SELECT id, year_id, name, display_order FROM semesters ORDER BY display_order ASC, id ASC`
+	insertSemesterQuery = `INSERT INTO semesters (year_id, name, display_order) VALUES ($1, $2, $3)`
+	updateSemesterQuery = `UPDATE semesters SET year_id = $1, name = $2, display_order = $3 WHERE id = $4`
+	deleteSemesterQuery = `DELETE FROM semesters WHERE id = $1`
 )
 
 // Extra sections queries
@@ -444,6 +490,19 @@ const (
 	listFeedbackWithQStatusQuery = listFeedbackBaseQuery + ` WHERE (category ILIKE $1 OR message ILIKE $1) AND status = $2 ORDER BY created_at DESC LIMIT $3 OFFSET $4`
 )
 
+// Suggestions Queries
+const (
+	deleteSuggestionQuery = `DELETE FROM suggestions WHERE id = $1`
+	updateSuggestionQuery = `UPDATE suggestions SET status = $1 WHERE id = $2`
+	insertSuggestionQuery = `INSERT INTO suggestions (category, description, user_id) VALUES ($1, $2, $3)`
+
+	listSuggestionsBaseQuery        = `SELECT id, category, description, status, created_at, user_id FROM suggestions`
+	listSuggestionsNoFilterQuery    = listSuggestionsBaseQuery + ` ORDER BY created_at DESC LIMIT $1 OFFSET $2`
+	listSuggestionsWithStatusQuery  = listSuggestionsBaseQuery + ` WHERE status = $1 ORDER BY created_at DESC LIMIT $2 OFFSET $3`
+	listSuggestionsWithQQuery       = listSuggestionsBaseQuery + ` WHERE (category ILIKE $1 OR description ILIKE $1) ORDER BY created_at DESC LIMIT $2 OFFSET $3`
+	listSuggestionsWithQStatusQuery = listSuggestionsBaseQuery + ` WHERE (category ILIKE $1 OR description ILIKE $1) AND status = $2 ORDER BY created_at DESC LIMIT $3 OFFSET $4`
+)
+
 // Reports Queries
 const (
 	deleteReportQuery = `DELETE FROM reports WHERE id = $1`
@@ -474,14 +533,16 @@ const (
 const (
 	getSEOCoursePlacementsQuery = `
 		SELECT c.id, c.name, c.code, c.is_optional,
-		       p.id, p.name, y.name, s.name
+		       f.id, f.name || ' · ' || b.name || ' · ' || sp.name, y.name, s.name
 		FROM courses c
-		JOIN course_placements pl ON pl.course_id = c.id
-		JOIN semesters s ON pl.semester_id = s.id
-		JOIN years y ON s.year_id = y.id
-		JOIN programs p ON y.program_id = p.id
+		JOIN semesters s ON s.id = c.semester_id
+		JOIN years y ON y.id = s.year_id
+		JOIN branch_specialisations bs ON bs.id = y.branch_specialisation_id
+		JOIN branches b ON b.id = bs.branch_id
+		JOIN specialisations sp ON sp.id = bs.specialisation_id
+		JOIN faculties f ON f.id = sp.faculty_id
 		WHERE LOWER(TRIM(c.code)) = LOWER(TRIM($1))
-		ORDER BY p.display_order, y.display_order, s.display_order, pl.display_order`
+		ORDER BY f.display_order, b.display_order, sp.display_order, y.display_order, s.display_order, c.display_order`
 
 	listSEOLinksByCourseIDsQuery = `
 		SELECT l.id, l.label, l.url, COALESCE(l.note, ''),
@@ -496,54 +557,189 @@ const (
 		WHERE code IS NOT NULL AND TRIM(code) <> ''
 		ORDER BY 1`
 
-	listSEOProgramsQuery = `SELECT id, name FROM programs ORDER BY display_order ASC`
+	listSEOProgramsQuery = `SELECT id, name FROM faculties ORDER BY display_order ASC`
 
 	listSEOCoursesIndexQuery = `
 		SELECT DISTINCT ON (LOWER(TRIM(c.code)))
-		       LOWER(TRIM(c.code)), c.name, p.name
+		       LOWER(TRIM(c.code)), c.name, f.name || ' · ' || b.name || ' · ' || sp.name
 		FROM courses c
-		JOIN course_placements pl ON pl.course_id = c.id
-		JOIN semesters s ON pl.semester_id = s.id
-		JOIN years y ON s.year_id = y.id
-		JOIN programs p ON y.program_id = p.id
+		JOIN semesters s ON s.id = c.semester_id
+		JOIN years y ON y.id = s.year_id
+		JOIN branch_specialisations bs ON bs.id = y.branch_specialisation_id
+		JOIN branches b ON b.id = bs.branch_id
+		JOIN specialisations sp ON sp.id = bs.specialisation_id
+		JOIN faculties f ON f.id = sp.faculty_id
 		WHERE c.code IS NOT NULL AND TRIM(c.code) <> ''
-		ORDER BY LOWER(TRIM(c.code)), p.display_order, pl.display_order`
+		ORDER BY LOWER(TRIM(c.code)), f.display_order, c.display_order`
 
 	listSEOProgramCoursesQuery = `
 		SELECT DISTINCT ON (LOWER(TRIM(c.code))) LOWER(TRIM(c.code)), c.name
 		FROM courses c
-		JOIN course_placements pl ON pl.course_id = c.id
-		JOIN semesters s ON pl.semester_id = s.id
-		JOIN years y ON s.year_id = y.id
-		WHERE y.program_id = $1 AND c.code IS NOT NULL AND TRIM(c.code) <> ''
-		ORDER BY LOWER(TRIM(c.code)), pl.display_order`
+		JOIN semesters s ON s.id = c.semester_id
+		JOIN years y ON y.id = s.year_id
+		JOIN branch_specialisations bs ON bs.id = y.branch_specialisation_id
+		JOIN specialisations sp ON sp.id = bs.specialisation_id
+		WHERE sp.faculty_id = $1 AND c.code IS NOT NULL AND TRIM(c.code) <> ''
+		ORDER BY LOWER(TRIM(c.code)), c.display_order`
 )
 
-// Contents Queries
+// Contents Queries — explicit json_build_object projections (no SELECT * row dumps).
 const (
+	facultyJSON       = `json_build_object('id', f.id, 'name', f.name, 'slug', f.slug, 'display_order', f.display_order)`
+	branchJSON        = `json_build_object('id', b.id, 'name', b.name, 'slug', b.slug, 'display_order', b.display_order)`
+	facultyBranchJSON = `json_build_object('faculty_id', fb.faculty_id, 'branch_id', fb.branch_id)`
+	specJSON          = `json_build_object('id', sp.id, 'faculty_id', sp.faculty_id, 'name', sp.name, 'slug', sp.slug, 'display_order', sp.display_order)`
+	offeringJSON      = `json_build_object('id', bs.id, 'branch_id', bs.branch_id, 'specialisation_id', bs.specialisation_id, 'display_order', bs.display_order)`
+	yearJSON          = `json_build_object('id', y.id, 'branch_specialisation_id', y.branch_specialisation_id, 'name', y.name, 'display_order', y.display_order)`
+	semesterJSON      = `json_build_object('id', s.id, 'year_id', s.year_id, 'name', s.name, 'display_order', s.display_order)`
+	courseJSON        = `json_build_object('id', c.id, 'name', c.name, 'code', c.code, 'is_optional', c.is_optional, 'semester_id', c.semester_id, 'display_order', c.display_order)`
+	linkJSON          = `json_build_object('id', l.id, 'course_id', l.course_id, 'type', l.type, 'url', l.url, 'label', l.label, 'note', COALESCE(l.note, ''), 'content_type', l.content_type, 'display_order', l.display_order, 'languages', COALESCE(l.languages, '[]'::jsonb))`
+	extraSectionJSON  = `json_build_object('id', ex.id, 'title', ex.title, 'icon', ex.icon, 'display_order', ex.display_order)`
+	extraLinkJSON     = `json_build_object('id', el.id, 'section_id', el.section_id, 'type', el.type, 'url', el.url, 'label', el.label, 'note', COALESCE(el.note, ''), 'content_type', el.content_type, 'display_order', el.display_order)`
+
 	getContentQuery = `
 	WITH content AS (
 		SELECT
-			(SELECT COALESCE(json_agg(y ORDER BY display_order ASC), '[]') FROM years y) as years,
-			(SELECT COALESCE(json_agg(c ORDER BY c.display_order ASC), '[]') FROM (
-				SELECT c.id, pl.id AS placement_id, pl.semester_id, c.name, c.code, c.is_optional, pl.display_order
-				FROM course_placements pl
-				JOIN courses c ON c.id = pl.course_id
-			) c) as courses,
-			(SELECT COALESCE(json_agg(p ORDER BY display_order ASC), '[]') FROM programs p) as programs,
-			(SELECT COALESCE(json_agg(s ORDER BY display_order ASC), '[]') FROM semesters s) as semesters,
-		(SELECT COALESCE(json_agg(el ORDER BY display_order ASC), '[]') FROM extra_links el) as extra_links,
-		(SELECT COALESCE(json_agg(ex ORDER BY display_order ASC), '[]') FROM extra_sections ex) as extra_sections,
-		(SELECT COALESCE(json_agg(l ORDER BY display_order ASC), '[]') FROM links l WHERE course_id IS NOT NULL) as links
+			(SELECT COALESCE(json_agg(` + facultyJSON + ` ORDER BY f.display_order ASC), '[]') FROM faculties f) AS faculties,
+			(SELECT COALESCE(json_agg(` + branchJSON + ` ORDER BY b.display_order ASC), '[]') FROM branches b) AS branches,
+			(SELECT COALESCE(json_agg(` + facultyBranchJSON + `), '[]') FROM faculty_branches fb) AS faculty_branches,
+			(SELECT COALESCE(json_agg(` + specJSON + ` ORDER BY sp.display_order ASC), '[]') FROM specialisations sp) AS specialisations,
+			(SELECT COALESCE(json_agg(` + offeringJSON + ` ORDER BY bs.display_order ASC), '[]') FROM branch_specialisations bs) AS branch_specialisations,
+			(SELECT COALESCE(json_agg(` + yearJSON + ` ORDER BY y.display_order ASC), '[]') FROM years y) AS years,
+			(SELECT COALESCE(json_agg(` + semesterJSON + ` ORDER BY s.display_order ASC), '[]') FROM semesters s) AS semesters,
+			(SELECT COALESCE(json_agg(` + courseJSON + ` ORDER BY c.display_order ASC), '[]') FROM courses c) AS courses,
+			(SELECT COALESCE(json_agg(` + linkJSON + ` ORDER BY l.display_order ASC), '[]') FROM links l WHERE l.course_id IS NOT NULL) AS links,
+			(SELECT COALESCE(json_agg(` + extraLinkJSON + ` ORDER BY el.display_order ASC), '[]') FROM extra_links el) AS extra_links,
+			(SELECT COALESCE(json_agg(` + extraSectionJSON + ` ORDER BY ex.display_order ASC), '[]') FROM extra_sections ex) AS extra_sections
 	)
 	SELECT json_build_object(
+		'faculties', faculties,
+		'branches', branches,
+		'faculty_branches', faculty_branches,
+		'specialisations', specialisations,
+		'branch_specialisations', branch_specialisations,
 		'years', years,
-		'links', links,
-		'courses', courses,
-		'programs', programs,
 		'semesters', semesters,
+		'courses', courses,
+		'links', links,
 		'extra_links', extra_links,
 		'extra_sections', extra_sections
 	) FROM content;
+    `
+
+	// Hierarchy bootstrap: everything except courses/links (keeps first paint tiny).
+	getHierarchyQuery = `
+	WITH content AS (
+		SELECT
+			(SELECT COALESCE(json_agg(` + facultyJSON + ` ORDER BY f.display_order ASC), '[]') FROM faculties f) AS faculties,
+			(SELECT COALESCE(json_agg(` + branchJSON + ` ORDER BY b.display_order ASC), '[]') FROM branches b) AS branches,
+			(SELECT COALESCE(json_agg(` + facultyBranchJSON + `), '[]') FROM faculty_branches fb) AS faculty_branches,
+			(SELECT COALESCE(json_agg(` + specJSON + ` ORDER BY sp.display_order ASC), '[]') FROM specialisations sp) AS specialisations,
+			(SELECT COALESCE(json_agg(` + offeringJSON + ` ORDER BY bs.display_order ASC), '[]') FROM branch_specialisations bs) AS branch_specialisations,
+			(SELECT COALESCE(json_agg(` + yearJSON + ` ORDER BY y.display_order ASC), '[]') FROM years y) AS years,
+			(SELECT COALESCE(json_agg(` + semesterJSON + ` ORDER BY s.display_order ASC), '[]') FROM semesters s) AS semesters,
+			(SELECT COALESCE(json_agg(` + extraLinkJSON + ` ORDER BY el.display_order ASC), '[]') FROM extra_links el) AS extra_links,
+			(SELECT COALESCE(json_agg(` + extraSectionJSON + ` ORDER BY ex.display_order ASC), '[]') FROM extra_sections ex) AS extra_sections
+	)
+	SELECT json_build_object(
+		'faculties', faculties,
+		'branches', branches,
+		'faculty_branches', faculty_branches,
+		'specialisations', specialisations,
+		'branch_specialisations', branch_specialisations,
+		'years', years,
+		'semesters', semesters,
+		'courses', '[]'::json,
+		'links', '[]'::json,
+		'extra_links', extra_links,
+		'extra_sections', extra_sections
+	) FROM content;
+    `
+
+	getOfferingContentQuery = `
+	SELECT json_build_object(
+		'years', (
+			SELECT COALESCE(json_agg(` + yearJSON + ` ORDER BY y.display_order ASC), '[]')
+			FROM years y WHERE y.branch_specialisation_id = $1
+		),
+		'semesters', (
+			SELECT COALESCE(json_agg(` + semesterJSON + ` ORDER BY s.display_order ASC), '[]')
+			FROM semesters s
+			JOIN years y ON y.id = s.year_id
+			WHERE y.branch_specialisation_id = $1
+		),
+		'courses', (
+			SELECT COALESCE(json_agg(` + courseJSON + ` ORDER BY c.display_order ASC), '[]')
+			FROM courses c
+			JOIN semesters s ON s.id = c.semester_id
+			JOIN years y ON y.id = s.year_id
+			WHERE y.branch_specialisation_id = $1
+		),
+		'links', (
+			SELECT COALESCE(json_agg(` + linkJSON + ` ORDER BY l.display_order ASC), '[]')
+			FROM links l
+			JOIN courses c ON c.id = l.course_id
+			JOIN semesters s ON s.id = c.semester_id
+			JOIN years y ON y.id = s.year_id
+			WHERE y.branch_specialisation_id = $1 AND l.course_id IS NOT NULL
+		)
+	);
+    `
+
+	searchContentQuery = `
+	SELECT COALESCE(json_agg(course_row ORDER BY course_row->>'code'), '[]')
+	FROM (
+		SELECT json_build_object(
+			'id', c.id,
+			'name', c.name,
+			'code', c.code,
+			'is_optional', c.is_optional,
+			'semester_id', c.semester_id,
+			'display_order', c.display_order,
+			'path', fac.name || ' · ' || br.name || ' · ' || sp.name || ' · ' || y.name || ' · ' || s.name,
+			'links', (
+				SELECT COALESCE(json_agg(` + linkJSON + ` ORDER BY l.display_order ASC), '[]')
+				FROM links l WHERE l.course_id = c.id
+			)
+		) AS course_row
+		FROM courses c
+		JOIN semesters s ON s.id = c.semester_id
+		JOIN years y ON y.id = s.year_id
+		JOIN branch_specialisations bs ON bs.id = y.branch_specialisation_id
+		JOIN branches br ON br.id = bs.branch_id
+		JOIN specialisations sp ON sp.id = bs.specialisation_id
+		JOIN faculties fac ON fac.id = sp.faculty_id
+		WHERE ($1 = '') OR c.name ILIKE '%' || $1 || '%' OR c.code ILIKE '%' || $1 || '%'
+		ORDER BY LOWER(TRIM(c.code)), c.display_order
+		LIMIT $2
+	) q;
+    `
+
+	getCoursesByIDsQuery = `
+	SELECT COALESCE(json_agg(course_row ORDER BY course_row->>'code'), '[]')
+	FROM (
+		SELECT json_build_object(
+			'id', c.id,
+			'name', c.name,
+			'code', c.code,
+			'is_optional', c.is_optional,
+			'semester_id', c.semester_id,
+			'display_order', c.display_order,
+			'path', fac.name || ' · ' || br.name || ' · ' || sp.name || ' · ' || y.name || ' · ' || s.name,
+			'links', (
+				SELECT COALESCE(json_agg(` + linkJSON + ` ORDER BY l.display_order ASC), '[]')
+				FROM links l WHERE l.course_id = c.id
+			)
+		) AS course_row
+		FROM courses c
+		JOIN semesters s ON s.id = c.semester_id
+		JOIN years y ON y.id = s.year_id
+		JOIN branch_specialisations bs ON bs.id = y.branch_specialisation_id
+		JOIN branches br ON br.id = bs.branch_id
+		JOIN specialisations sp ON sp.id = bs.specialisation_id
+		JOIN faculties fac ON fac.id = sp.faculty_id
+		WHERE c.id = ANY($1::int[])
+		ORDER BY LOWER(TRIM(c.code)), c.display_order
+	) q;
     `
 )

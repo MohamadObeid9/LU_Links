@@ -3,8 +3,8 @@ package repository
 import (
 	"context"
 	"errors"
-	"infolinks-backend/internal/errs"
-	"infolinks-backend/internal/models"
+	"lu-links/internal/errs"
+	"lu-links/internal/models"
 	"testing"
 
 	"github.com/DATA-DOG/go-sqlmock"
@@ -42,7 +42,7 @@ func TestLinkRepository_Create(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			repo, mock := newTestLinkRepo(t)
 			exp := mock.ExpectExec(insertLinkQuery).
-				WithArgs(tt.link.CourseID, tt.link.Type, tt.link.URL, tt.link.Label, tt.link.Note, tt.link.ContentType, tt.link.DisplayOrder)
+				WithArgs(tt.link.CourseID, tt.link.Type, tt.link.URL, tt.link.Label, tt.link.Note, tt.link.ContentType, tt.link.DisplayOrder, "[]")
 			if tt.execErr != nil {
 				exp.WillReturnError(tt.execErr)
 			} else {
@@ -161,7 +161,7 @@ func TestLinkRepository_Update(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			repo, mock := newTestLinkRepo(t)
 			exp := mock.ExpectExec(updateLinkQuery).
-				WithArgs(tt.link.Type, tt.link.URL, tt.link.Label, tt.link.Note, tt.link.ContentType, tt.id)
+				WithArgs(tt.link.Type, tt.link.URL, tt.link.Label, tt.link.Note, tt.link.ContentType, "[]", tt.id)
 			switch {
 			case tt.execErr != nil:
 				exp.WillReturnError(tt.execErr)

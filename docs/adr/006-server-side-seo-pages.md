@@ -2,11 +2,11 @@
 
 ## Context
 
-Info Links is primarily a **client-rendered SPA** (Vanilla JS + Vite build). Students load course data via `GET /api/content` and navigate in the browser. That works for users but is weak for:
+LU Links is primarily a **client-rendered SPA** (Vanilla JS + Vite build). Students load course data via `GET /api/content` and navigate in the browser. That works for users but is weak for:
 
 - **Search engines** — crawlers may not execute JS reliably; course pages would be invisible in Google
 - **Social sharing** — link previews need `<title>`, meta description, and Open Graph tags in initial HTML
-- **Discoverability** — students search course codes (e.g. "INF101 CNAM") on Google; we want `/course/INF101` to rank
+- **Discoverability** — students search course codes (e.g. "INF101 LU") on Google; we want `/course/INF101` to rank
 
 Alternatives considered:
 

@@ -5,8 +5,8 @@ import (
 	"reflect"
 	"testing"
 
-	"infolinks-backend/internal/errs"
-	"infolinks-backend/internal/models"
+	"lu-links/internal/errs"
+	"lu-links/internal/models"
 
 	"github.com/DATA-DOG/go-sqlmock"
 )
@@ -101,7 +101,7 @@ func TestAnalyticsRepository_GetSummary(t *testing.T) {
 				NewInRange:              3,
 				Funnel:                  models.SignupFunnel{Arrivals: 10, SignedUp: 2, StillGuest: 8, GuestsOpen: 20},
 				PrevStudentsGained:      1,
-				Inbox:                   models.AnalyticsInbox{Reports: 1, Contributions: 2, Feedback: 3},
+				Inbox:                   models.AnalyticsInbox{Reports: 1, Contributions: 2, Feedback: 3, Suggestions: 4},
 				Browse:                  models.BrowseDepth{ReachedYear: 7, ReachedList: 4},
 				DailyUniqueVisits:       []models.DailyUniqueDay{{Day: "2026-08-18", Users: 12}},
 				DailyRoster:             []models.DailyRosterDay{{Day: "2026-08-18", Total: 4}},
@@ -242,7 +242,7 @@ func analyticsRowsFor(query string, params AnalyticsSummaryParams) *sqlmock.Rows
 			"phone_range", "laptop_range", "both_range",
 			"returning", "new_in_range",
 			"arrivals", "signed_up", "prev_students_gained", "still_guest", "guests_open",
-			"reports", "contributions", "feedback",
+			"reports", "contributions", "feedback", "suggestions",
 			"reached_year", "reached_list",
 			"active_registered_in_range",
 		}).AddRow(
@@ -253,7 +253,7 @@ func analyticsRowsFor(query string, params AnalyticsSummaryParams) *sqlmock.Rows
 			4, 3, 1,
 			5, 3,
 			10, 2, 1, 8, 20,
-			1, 2, 3,
+			1, 2, 3, 4,
 			7, 4,
 			3,
 		)

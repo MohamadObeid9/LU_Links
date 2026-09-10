@@ -2,7 +2,7 @@
 
 ## Context
 
-Info Links stores a hierarchical navigation tree (programs → years → semesters → courses → links), user submissions (reports, feedback, contributions), and analytics (page views, link clicks). The app serves:
+LU Links stores a hierarchical navigation tree (faculties → campuses → specialisations → years → semesters → courses → links), user submissions (reports, feedback, suggestions, contributions), and analytics (page views, link clicks). The app serves:
 
 - One large JSON payload for the SPA (`GET /api/content`)
 - Filtered admin lists with search and pagination

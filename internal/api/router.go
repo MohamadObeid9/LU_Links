@@ -8,9 +8,9 @@ import (
 	"regexp"
 	"strings"
 
-	"infolinks-backend/internal/config"
-	"infolinks-backend/internal/middleware"
-	"infolinks-backend/internal/seo"
+	"lu-links/internal/config"
+	"lu-links/internal/middleware"
+	"lu-links/internal/seo"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/cors"
@@ -72,6 +72,10 @@ func registerPublicRoutes(mux *http.ServeMux, h *Handler, cfg config.Config) {
 	mux.HandleFunc("GET /readyz", h.handleReadyz)
 	mux.HandleFunc("GET /healthz", h.handleHealthz)
 	mux.HandleFunc("GET /api/content", h.handleGetContent)
+	mux.HandleFunc("GET /api/content/hierarchy", h.handleGetContentHierarchy)
+	mux.HandleFunc("GET /api/content/offerings/{id}", h.handleGetContentOffering)
+	mux.HandleFunc("GET /api/content/search", h.handleGetContentSearch)
+	mux.HandleFunc("GET /api/content/courses", h.handleGetContentCourses)
 
 	mux.HandleFunc("POST /api/auth/login", h.handleLogin)
 
@@ -79,6 +83,7 @@ func registerPublicRoutes(mux *http.ServeMux, h *Handler, cfg config.Config) {
 	mux.HandleFunc("POST /api/users/login", h.handleLoginUser)
 	mux.HandleFunc("POST /api/users/register", h.handleRegisterUser)
 	mux.HandleFunc("GET /api/users/me", middleware.RequireUser(jwtSecret, h.handleGetMe))
+	mux.HandleFunc("PATCH /api/users/me/preferences", middleware.RequireUser(jwtSecret, h.handlePatchPreferences))
 	mux.HandleFunc("POST /api/users/me/favorites/{course_id}", middleware.RequireRegisteredUser(jwtSecret, h.handleAddFavorite))
 	mux.HandleFunc("DELETE /api/users/me/favorites/{course_id}", middleware.RequireRegisteredUser(jwtSecret, h.handleRemoveFavorite))
 
@@ -89,6 +94,7 @@ func registerPublicRoutes(mux *http.ServeMux, h *Handler, cfg config.Config) {
 	mux.HandleFunc("POST /api/browse_events", h.skipForAdmin(middleware.RequireUser(jwtSecret, h.handlePostBrowseEvent)))
 	mux.HandleFunc("POST /api/reports", middleware.RequireRegisteredUser(jwtSecret, h.handlePostReport))
 	mux.HandleFunc("POST /api/feedback", middleware.RequireRegisteredUser(jwtSecret, h.handlePostFeedback))
+	mux.HandleFunc("POST /api/suggestions", middleware.RequireRegisteredUser(jwtSecret, h.handlePostSuggestion))
 	mux.HandleFunc("POST /api/contributions", middleware.RequireRegisteredUser(jwtSecret, h.handlePostContribution))
 }
 
@@ -118,6 +124,10 @@ func registerAdminRoutes(mux *http.ServeMux, h *Handler, jwtSecret string) {
 	mux.HandleFunc("PATCH /api/admin/feedback/{id}", middleware.RequireAdmin(jwtSecret, h.handleAdminPatchFeedback))
 	mux.HandleFunc("DELETE /api/admin/feedback/{id}", middleware.RequireAdmin(jwtSecret, h.handleAdminDeleteFeedback))
 
+	mux.HandleFunc("GET /api/admin/suggestions", middleware.RequireAdmin(jwtSecret, h.handleAdminGetSuggestions))
+	mux.HandleFunc("PATCH /api/admin/suggestions/{id}", middleware.RequireAdmin(jwtSecret, h.handleAdminPatchSuggestion))
+	mux.HandleFunc("DELETE /api/admin/suggestions/{id}", middleware.RequireAdmin(jwtSecret, h.handleAdminDeleteSuggestion))
+
 	mux.HandleFunc("GET /api/admin/contributions", middleware.RequireAdmin(jwtSecret, h.handleAdminGetContributions))
 	mux.HandleFunc("PATCH /api/admin/contributions/{id}", middleware.RequireAdmin(jwtSecret, h.handleAdminUpdateContribution))
 	mux.HandleFunc("DELETE /api/admin/contributions/{id}", middleware.RequireAdmin(jwtSecret, h.handleAdminDeleteContribution))
@@ -131,6 +141,38 @@ func registerAdminRoutes(mux *http.ServeMux, h *Handler, jwtSecret string) {
 	mux.HandleFunc("POST /api/admin/extra_links", middleware.RequireAdmin(jwtSecret, h.handleAdminPostExtraLink))
 	mux.HandleFunc("PATCH /api/admin/extra_links/{id}", middleware.RequireAdmin(jwtSecret, h.handleAdminPatchExtraLink))
 	mux.HandleFunc("DELETE /api/admin/extra_links/{id}", middleware.RequireAdmin(jwtSecret, h.handleAdminDeleteExtraLink))
+
+	mux.HandleFunc("GET /api/admin/faculties", middleware.RequireAdmin(jwtSecret, h.handleAdminGetFaculties))
+	mux.HandleFunc("POST /api/admin/faculties", middleware.RequireAdmin(jwtSecret, h.handleAdminPostFaculty))
+	mux.HandleFunc("PATCH /api/admin/faculties/{id}", middleware.RequireAdmin(jwtSecret, h.handleAdminPatchFaculty))
+	mux.HandleFunc("DELETE /api/admin/faculties/{id}", middleware.RequireAdmin(jwtSecret, h.handleAdminDeleteFaculty))
+	mux.HandleFunc("POST /api/admin/faculties/{id}/branches/{branch_id}", middleware.RequireAdmin(jwtSecret, h.handleAdminPostFacultyBranch))
+	mux.HandleFunc("DELETE /api/admin/faculties/{id}/branches/{branch_id}", middleware.RequireAdmin(jwtSecret, h.handleAdminDeleteFacultyBranch))
+
+	mux.HandleFunc("GET /api/admin/branches", middleware.RequireAdmin(jwtSecret, h.handleAdminGetBranches))
+	mux.HandleFunc("POST /api/admin/branches", middleware.RequireAdmin(jwtSecret, h.handleAdminPostBranch))
+	mux.HandleFunc("PATCH /api/admin/branches/{id}", middleware.RequireAdmin(jwtSecret, h.handleAdminPatchBranch))
+	mux.HandleFunc("DELETE /api/admin/branches/{id}", middleware.RequireAdmin(jwtSecret, h.handleAdminDeleteBranch))
+
+	mux.HandleFunc("GET /api/admin/specialisations", middleware.RequireAdmin(jwtSecret, h.handleAdminGetSpecialisations))
+	mux.HandleFunc("POST /api/admin/specialisations", middleware.RequireAdmin(jwtSecret, h.handleAdminPostSpecialisation))
+	mux.HandleFunc("PATCH /api/admin/specialisations/{id}", middleware.RequireAdmin(jwtSecret, h.handleAdminPatchSpecialisation))
+	mux.HandleFunc("DELETE /api/admin/specialisations/{id}", middleware.RequireAdmin(jwtSecret, h.handleAdminDeleteSpecialisation))
+
+	mux.HandleFunc("GET /api/admin/branch_specialisations", middleware.RequireAdmin(jwtSecret, h.handleAdminGetBranchSpecialisations))
+	mux.HandleFunc("POST /api/admin/branch_specialisations", middleware.RequireAdmin(jwtSecret, h.handleAdminPostBranchSpecialisation))
+	mux.HandleFunc("PATCH /api/admin/branch_specialisations/{id}", middleware.RequireAdmin(jwtSecret, h.handleAdminPatchBranchSpecialisation))
+	mux.HandleFunc("DELETE /api/admin/branch_specialisations/{id}", middleware.RequireAdmin(jwtSecret, h.handleAdminDeleteBranchSpecialisation))
+
+	mux.HandleFunc("GET /api/admin/years", middleware.RequireAdmin(jwtSecret, h.handleAdminGetYears))
+	mux.HandleFunc("POST /api/admin/years", middleware.RequireAdmin(jwtSecret, h.handleAdminPostYear))
+	mux.HandleFunc("PATCH /api/admin/years/{id}", middleware.RequireAdmin(jwtSecret, h.handleAdminPatchYear))
+	mux.HandleFunc("DELETE /api/admin/years/{id}", middleware.RequireAdmin(jwtSecret, h.handleAdminDeleteYear))
+
+	mux.HandleFunc("GET /api/admin/semesters", middleware.RequireAdmin(jwtSecret, h.handleAdminGetSemesters))
+	mux.HandleFunc("POST /api/admin/semesters", middleware.RequireAdmin(jwtSecret, h.handleAdminPostSemester))
+	mux.HandleFunc("PATCH /api/admin/semesters/{id}", middleware.RequireAdmin(jwtSecret, h.handleAdminPatchSemester))
+	mux.HandleFunc("DELETE /api/admin/semesters/{id}", middleware.RequireAdmin(jwtSecret, h.handleAdminDeleteSemester))
 }
 
 func metricsHandler(cfg config.Config) http.Handler {
@@ -256,7 +298,7 @@ func setHomepageLinkHeaders(w http.ResponseWriter) {
 
 func isSPAPath(path string) bool {
 	switch path {
-	case "/", "/report-submit", "/feedback", "/about", "/admin-gate", "/admin":
+	case "/", "/report-submit", "/feedback-suggestion", "/feedback", "/about", "/admin-gate", "/admin":
 		return true
 	default:
 		return false

@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"infolinks-backend/internal/models"
-	"infolinks-backend/internal/repository"
+	"lu-links/internal/models"
+	"lu-links/internal/repository"
 )
 
 type PageViewService struct {

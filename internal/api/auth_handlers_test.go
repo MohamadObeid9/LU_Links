@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
-	"infolinks-backend/internal/middleware"
+	"lu-links/internal/middleware"
 )
 
 func signTestToken(t *testing.T, secret []byte, claims jwt.MapClaims) string {

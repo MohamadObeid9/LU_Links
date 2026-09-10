@@ -4,8 +4,8 @@ import (
 	"errors"
 	"net/http"
 
-	"infolinks-backend/internal/errs"
-	"infolinks-backend/internal/models"
+	"lu-links/internal/errs"
+	"lu-links/internal/models"
 )
 
 func (h *Handler) handleAdminGetExtraSections(w http.ResponseWriter, r *http.Request) {

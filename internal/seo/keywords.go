@@ -4,12 +4,12 @@ import "strings"
 
 // InstitutionKeywords for meta and intro copy.
 var InstitutionKeywords = []string{
-	"CNAM", "CNAM Liban", "CNAM Lebanon", "Le CNAM", "ISAE CNAM", "ISAE-CNAM", "ISAE Liban",
+	"LU", "LU Links", "Université Libanaise", "Lebanese University", "UL",
 }
 
 // ProgramKeywords for broader searches.
 var ProgramKeywords = []string{
-	"génie informatique", "informatique", "licence info", "license info", "master", "AISL", "IRSM", "info",
+	"faculté", "campus", "spécialisation", "informatique", "génie", "licence", "master",
 }
 
 // MaterialKeywords for resource types.
@@ -17,7 +17,6 @@ var MaterialKeywords = []string{
 	"matériaux", "ressources", "supports", "archives", "TD", "TP", "cours", "sessions", "séances",
 	"vidéos", "videos", "examens", "exams", "partiels", "CC", "rattrapage",
 }
-
 // ContentSection defines an on-page h2 block.
 type ContentSection struct {
 	ID    string

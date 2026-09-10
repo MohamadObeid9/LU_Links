@@ -13,16 +13,16 @@ jobs:
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: infolinks
+          POSTGRES_DB: lu_links
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U postgres -d infolinks"
+          --health-cmd "pg_isready -U postgres -d lu_links"
           --health-interval 5s
           --health-timeout 5s
           --health-retries 10
     env:
-      INTEGRATION_DATABASE_URL: postgres://postgres:postgres@localhost:5432/infolinks?sslmode=disable
+      INTEGRATION_DATABASE_URL: postgres://postgres:postgres@localhost:5432/lu_links?sslmode=disable
     steps:
       - uses: actions/checkout@v5
 
@@ -88,4 +88,4 @@ jobs:
       - uses: actions/checkout@v5
 
       - name: Build production Docker image
-        run: docker build -t infolinks:ci .
+        run: docker build -t lu-links:ci .

@@ -1,22 +1,33 @@
 <!doctype html>
-<html lang="fr">
+<html lang="en">
 
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <script data-cfasync="false">
       (function () {
-        var dark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-        document.documentElement.setAttribute("data-theme", dark ? "dark" : "light");
+        try {
+          var theme = localStorage.getItem("lu_prefered_theme") || "system";
+          var lang = localStorage.getItem("lu_prefered_lang") || "eng";
+          if (lang !== "eng" && lang !== "fr" && lang !== "ar") lang = "eng";
+          if (theme !== "system" && theme !== "light" && theme !== "dark") theme = "system";
+          var dark = theme === "dark" || (theme !== "light" && window.matchMedia("(prefers-color-scheme: dark)").matches);
+          document.documentElement.setAttribute("data-theme", dark ? "dark" : "light");
+          document.documentElement.setAttribute("lang", lang === "eng" ? "en" : lang);
+          document.documentElement.setAttribute("dir", lang === "ar" ? "rtl" : "ltr");
+        } catch (e) {
+          var darkFallback = window.matchMedia("(prefers-color-scheme: dark)").matches;
+          document.documentElement.setAttribute("data-theme", darkFallback ? "dark" : "light");
+        }
       })();
     </script>
     <link rel="stylesheet" href="/styles/app.css">
-    <title>Info Links — CNAM Liban matériaux cours (ISAE CNAM, génie informatique)</title>
+    <title>LU Links — Lebanese University course materials</title>
     <meta name="description"
-        content="Hub étudiant CNAM Liban et ISAE CNAM : matériaux, TD, cours, examens, sessions, vidéos. Licence info, master AISL, IRSM, génie informatique — 50+ cours par code (NFA035, NSY107…)." />
-    <meta property="og:title" content="Info Links — CNAM Liban matériaux cours" />
+        content="Student hub for Lebanese University: course materials, TD, exams, and links by faculty, campus, and specialisation." />
+    <meta property="og:title" content="LU Links — Lebanese University materials" />
     <meta property="og:description"
-        content="Ressources CNAM Liban : TD, cours, examens, sessions. Génie informatique, licence info, master. Liens Drive, Telegram, Classroom." />
+        content="LU course resources: materials, exams, sessions. Organized by faculty, campus, and specialisation." />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="/" />
     <meta name="theme-color" content="#6c63ff" />
@@ -24,8 +35,8 @@
     {
       "@context": "https://schema.org",
       "@type": "WebSite",
-      "name": "Info Links",
-      "description": "Matériaux et liens cours CNAM Liban — TD, cours, examens, sessions, vidéos",
+      "name": "LU Links",
+      "description": "Lebanese University course materials and links",
       "potentialAction": {
         "@type": "SearchAction",
         "target": "/?highlight={search_term_string}",
@@ -43,46 +54,49 @@
 <body>
     <div id="app">
         <nav>
-            <div class="logo">📚 Info Links</div>
+            <div class="logo">📚 LU Links</div>
             <button class="hamburger" id="hamburgerBtn" data-action="toggleMobileMenu">
                 <span></span><span></span><span></span>
             </button>
             <div class="nav-links" id="navLinks">
-                <button class="nav-btn active" data-view="home">Home</button>
-                <button class="nav-btn" data-view="about">About</button>
-                <button class="nav-btn" data-view="report-submit">Report / Contribute</button>
-                <button class="nav-btn" data-view="feedback">Feedback</button>
-                <button class="nav-btn admin-btn" data-view="admin-gate">Admin</button>
-                <button class="theme-btn" id="themeBtn" data-action="toggleTheme">☀️</button>
+                <button class="nav-btn active" data-view="home" data-i18n="nav_home">Home</button>
+                <button class="nav-btn" data-view="about" data-i18n="nav_about">About</button>
+                <button class="nav-btn" data-view="report-submit" data-i18n="nav_report">Report / Contribute</button>
+                <button class="nav-btn" data-view="feedback-suggestion" data-i18n="nav_feedback">Feedback / Suggestion</button>
+                <button class="nav-btn admin-btn" data-view="admin-gate" data-i18n="nav_admin">Admin</button>
+                <div class="nav-prefs">
+                    <button class="theme-btn lang-btn" id="langBtn" data-action="cycleLang" data-i18n-title="lang_label" title="Language">EN</button>
+                    <button class="theme-btn" id="themeBtn" data-action="toggleTheme" data-i18n-title="theme_system" title="System theme">💻</button>
+                </div>
             </div>
         </nav>
 
         <!-- HOME -->
         <div class="view active" id="view-home">
             <div class="hero">
-                <h1>Info Links</h1>
-                <p>All courses, materials & links — organized by program, year & semester.</p>
+                <h1 data-i18n="hero_title">LU Links</h1>
+                <p data-i18n="hero_sub">All courses, materials & links — organized by faculty, campus & specialisation.</p>
                 <div class="student-welcome" id="studentWelcome" hidden></div>
             </div>
             <div class="search-bar">
                 <div class="search-wrap">
                     <span class="si">🔍</span>
-                    <input type="text" id="searchInput" placeholder="Search by course name or code…" />
+                    <input type="text" id="searchInput" data-i18n-placeholder="search_placeholder" placeholder="Search by course name or code…" />
                 </div>
             </div>
             <button class="filter-toggle-btn" id="filterToggleBtn" data-action="toggleFilters">
-                <span>🔎 Filters & Programs</span><span class="filter-toggle-arrow" id="filterArrow">▼</span>
+                <span data-i18n="filters_toggle">🔎 Filters & Faculties</span><span class="filter-toggle-arrow" id="filterArrow">▼</span>
             </button>
             <div class="filters-collapsible" id="filtersCollapsible">
                 <div class="prog-tabs" id="progTabs"></div>
                 <div id="programSectionHeading" hidden></div>
                 <div class="filter-row">
                     <div class="filter-group">
-                        <label>Year</label>
+                        <label data-i18n="filter_year">Year</label>
                         <div class="filters" id="yearFilters"></div>
                     </div>
                     <div class="filter-group">
-                        <label>Semester</label>
+                        <label data-i18n="filter_semester">Semester</label>
                         <div class="filters" id="semFilters"></div>
                     </div>
                 </div>
@@ -94,115 +108,295 @@
 
         <!-- REPORT / SUBMIT -->
         <div class="view" id="view-report-submit">
-            <h2 class="view-title">Report & Contribute</h2>
-            <p class="view-subtitle">
+            <h2 class="view-title" data-i18n="report_title">Report / Contribute</h2>
+            <p class="view-subtitle" data-i18n="report_sub">
                 Help keep the hub accurate and growing.
             </p>
-            <div class="report-grid">
+            <div class="report-grid feedback-grid">
                 <div class="report-box">
-                    <h3>🚨 Report a broken / inaccessible link</h3>
-                    <input type="text" id="rCourse" list="courseDatalist" placeholder="Course name or code" />
-                    <select id="rLink" disabled>
-                        <option value="">Select a link…</option>
-                    </select>
-                    <textarea id="rDesc" placeholder="Describe the issue.."></textarea>
-                    <button class="btn btn-primary" id="submitReportBtn" data-action="submitReport">Submit Report</button>
+                    <h3 class="feedback-card-title"><span class="report-box-icon" aria-hidden="true">🚨</span> <span data-i18n="report_card_title">Report a broken link</span></h3>
+                    <div class="report-box-body feedback-form">
+                    <div class="hierarchy-fields" id="rHierarchy">
+                        <div class="hierarchy-step" id="rStep-faculty">
+                            <label class="feedback-field-label" for="rFaculty"><span aria-hidden="true">🏛</span> <span data-i18n="label_faculty">Faculty</span></label>
+                            <select id="rFaculty" onchange="hierarchyCascade('r','faculty')">
+                                <option value="" data-i18n="ph_select_faculty">Select faculty…</option>
+                            </select>
+                        </div>
+                        <div class="hierarchy-step" id="rStep-campus" hidden>
+                            <label class="feedback-field-label" for="rCampus"><span aria-hidden="true">📍</span> <span data-i18n="label_campus">Campus</span></label>
+                            <select id="rCampus" disabled onchange="hierarchyCascade('r','campus')">
+                                <option value="" data-i18n="ph_select_campus">Select campus…</option>
+                            </select>
+                        </div>
+                        <div class="hierarchy-step" id="rStep-spec" hidden>
+                            <label class="feedback-field-label" for="rSpec"><span aria-hidden="true">🎯</span> <span data-i18n="label_spec">Specialisation</span></label>
+                            <select id="rSpec" disabled onchange="hierarchyCascade('r','spec')">
+                                <option value="" data-i18n="ph_select_spec">Select specialisation…</option>
+                            </select>
+                        </div>
+                        <div class="hierarchy-step" id="rStep-year" hidden>
+                            <label class="feedback-field-label" for="rYear"><span aria-hidden="true">📅</span> <span data-i18n="label_year">Year</span></label>
+                            <select id="rYear" disabled onchange="hierarchyCascade('r','year')">
+                                <option value="" data-i18n="ph_select_year">Select year…</option>
+                            </select>
+                        </div>
+                        <div class="hierarchy-step" id="rStep-sem" hidden>
+                            <label class="feedback-field-label" for="rSem"><span aria-hidden="true">🗓</span> <span data-i18n="label_semester">Semester</span></label>
+                            <select id="rSem" disabled onchange="hierarchyCascade('r','sem')">
+                                <option value="" data-i18n="ph_select_semester">Select semester…</option>
+                            </select>
+                        </div>
+                        <div class="hierarchy-step" id="rStep-course" hidden>
+                            <label class="feedback-field-label" for="rCoursePick"><span aria-hidden="true">📚</span> <span data-i18n="label_course">Course</span></label>
+                            <select id="rCoursePick" disabled onchange="hierarchyCascade('r','course')">
+                                <option value="" data-i18n="ph_select_course">Select course…</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div id="rReportPlaceholder" class="contrib-placeholder" data-i18n="report_placeholder">
+                        Pick faculty → campus → … → course to report a link.
+                    </div>
+                    <div id="rReportDetails" class="report-link-details" hidden>
+                        <div class="hierarchy-step" id="rLinkStep" hidden>
+                            <label class="feedback-field-label" for="rLink"><span aria-hidden="true">🔗</span> <span data-i18n="label_link">Link</span></label>
+                            <select id="rLink" disabled>
+                                <option value="" data-i18n="ph_select_link">Select a link…</option>
+                            </select>
+                        </div>
+                        <label class="feedback-field-label" for="rDesc"><span aria-hidden="true">📝</span> <span data-i18n="label_what_wrong">What went wrong?</span></label>
+                        <textarea id="rDesc" data-i18n-placeholder="ph_describe_issue" placeholder="Describe the issue…"></textarea>
+                    </div>
+                    </div>
+                    <button class="btn btn-primary" id="submitReportBtn" data-action="submitReport" data-i18n="btn_submit_report">Submit Report</button>
                 </div>
 
                 <div class="report-box">
-                    <h3>➕ Contribute a new link</h3>
-                    <input type="text" id="cCourse" list="courseDatalist" placeholder="Course name or code" />
-                    <input type="text" id="cLink" placeholder="https://…" />
-                    <select id="cType">
-                        <option value="">Select link type…</option>
-                        <option value="telegram">Telegram</option>
-                        <option value="drive">Google Drive</option>
-                        <option value="classroom">Google Classroom</option>
-                        <option value="other">Other</option>
-                    </select>
-                    <textarea id="cNote" placeholder="Note (optional)"></textarea>
-                    <button class="btn btn-primary" id="submitContribBtn" data-action="submitContribution">Submit Contribution</button>
+                    <h3 class="feedback-card-title"><span class="report-box-icon" aria-hidden="true">➕</span> <span data-i18n="contrib_card_title">Contribute a new link</span></h3>
+                    <div class="report-box-body feedback-form">
+                    <div class="hierarchy-fields" id="cHierarchy">
+                        <div class="hierarchy-step" id="cStep-faculty">
+                            <label class="feedback-field-label" for="cFaculty"><span aria-hidden="true">🏛</span> <span data-i18n="label_faculty">Faculty</span></label>
+                            <select id="cFaculty" onchange="hierarchyCascade('c','faculty')">
+                                <option value="" data-i18n="ph_select_faculty">Select faculty…</option>
+                            </select>
+                        </div>
+                        <div class="hierarchy-step" id="cStep-campus" hidden>
+                            <label class="feedback-field-label" for="cCampus"><span aria-hidden="true">📍</span> <span data-i18n="label_campus">Campus</span></label>
+                            <select id="cCampus" disabled onchange="hierarchyCascade('c','campus')">
+                                <option value="" data-i18n="ph_select_campus">Select campus…</option>
+                            </select>
+                        </div>
+                        <div class="hierarchy-step" id="cStep-spec" hidden>
+                            <label class="feedback-field-label" for="cSpec"><span aria-hidden="true">🎯</span> <span data-i18n="label_spec">Specialisation</span></label>
+                            <select id="cSpec" disabled onchange="hierarchyCascade('c','spec')">
+                                <option value="" data-i18n="ph_select_spec">Select specialisation…</option>
+                            </select>
+                        </div>
+                        <div class="hierarchy-step" id="cStep-year" hidden>
+                            <label class="feedback-field-label" for="cYear"><span aria-hidden="true">📅</span> <span data-i18n="label_year">Year</span></label>
+                            <select id="cYear" disabled onchange="hierarchyCascade('c','year')">
+                                <option value="" data-i18n="ph_select_year">Select year…</option>
+                            </select>
+                        </div>
+                        <div class="hierarchy-step" id="cStep-sem" hidden>
+                            <label class="feedback-field-label" for="cSem"><span aria-hidden="true">🗓</span> <span data-i18n="label_semester">Semester</span></label>
+                            <select id="cSem" disabled onchange="hierarchyCascade('c','sem')">
+                                <option value="" data-i18n="ph_select_semester">Select semester…</option>
+                            </select>
+                        </div>
+                        <div class="hierarchy-step" id="cStep-course" hidden>
+                            <label class="feedback-field-label" for="cCoursePick"><span aria-hidden="true">📚</span> <span data-i18n="label_course">Course</span></label>
+                            <select id="cCoursePick" disabled onchange="hierarchyCascade('c','course')">
+                                <option value="" data-i18n="ph_select_course">Select course…</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div id="cContribPlaceholder" class="contrib-placeholder" data-i18n="contrib_placeholder">
+                        Pick faculty → campus → … → course to add a link.
+                    </div>
+                    <div id="cLinkDetails" class="contrib-link-details" hidden>
+                        <label class="feedback-field-label" for="cLink"><span aria-hidden="true">🔗</span> <span data-i18n="label_link_url">Link URL</span></label>
+                        <input type="text" id="cLink" data-i18n-placeholder="ph_https" placeholder="https://…" />
+                        <div class="form-field">
+                            <label class="feedback-field-label" for="cType"><span aria-hidden="true">📎</span> <span data-i18n="label_link_type">Link type</span></label>
+                            <select id="cType">
+                                <option value="" data-i18n="ph_select_link_type">Select link type…</option>
+                                <option value="telegram" data-i18n="link_type_telegram">Telegram</option>
+                                <option value="drive" data-i18n="link_type_drive">Google Drive</option>
+                                <option value="classroom" data-i18n="link_type_classroom">Google Classroom</option>
+                                <option value="other" data-i18n="link_type_other">Other</option>
+                            </select>
+                        </div>
+                        <div class="form-field">
+                            <label class="feedback-field-label"><span aria-hidden="true">📦</span> <span data-i18n="label_content_types">Content type(s)</span></label>
+                            <div class="content-type-group" id="cCtGroup">
+                                <label class="ct-checkbox-label"><input type="checkbox" name="cct" value="td"/>✏️ <span data-i18n="ct_td">TD</span></label>
+                                <label class="ct-checkbox-label"><input type="checkbox" name="cct" value="cours"/>📄 <span data-i18n="ct_cours">Cours</span></label>
+                                <label class="ct-checkbox-label"><input type="checkbox" name="cct" value="videos"/>🎬 <span data-i18n="ct_videos">Videos</span></label>
+                                <label class="ct-checkbox-label"><input type="checkbox" name="cct" value="exams"/>📝 <span data-i18n="ct_exams">Exams</span></label>
+                                <label class="ct-checkbox-label"><input type="checkbox" name="cct" value="other"/>📦 <span data-i18n="ct_other">Other</span></label>
+                            </div>
+                        </div>
+                        <div class="form-field">
+                            <label class="feedback-field-label"><span aria-hidden="true">🌐</span> <span data-i18n="label_languages">Language(s)</span></label>
+                            <div class="content-type-group lang-type-group" id="cLangGroup">
+                                <label class="ct-checkbox-label lang-checkbox-label"><input type="checkbox" name="clang" value="en"/>EN</label>
+                                <label class="ct-checkbox-label lang-checkbox-label"><input type="checkbox" name="clang" value="fr"/>FR</label>
+                                <label class="ct-checkbox-label lang-checkbox-label"><input type="checkbox" name="clang" value="ar"/>AR</label>
+                            </div>
+                        </div>
+                        <label class="feedback-field-label" for="cNote"><span aria-hidden="true">📝</span> <span data-i18n="label_note_optional">Note (optional)</span></label>
+                        <textarea id="cNote" data-i18n-placeholder="ph_note_optional" placeholder="Note (optional)"></textarea>
+                    </div>
+                    </div>
+                    <button class="btn btn-primary" id="submitContribBtn" data-action="submitContribution" data-i18n="btn_submit_contrib">Submit Contribution</button>
                 </div>
             </div>
-            <datalist id="courseDatalist"></datalist>
         </div>
 
         <!-- ABOUT -->
         <div class="view" id="view-about">
             <div class="about-content">
-                <h2 class="view-title">About Info Links</h2>
+                <h2 class="view-title" data-i18n="about_title">About LU Links</h2>
+                <p class="view-subtitle" data-i18n="about_sub">Built by students, for students — starting from zero.</p>
 
-                <section class="about-block">
-                    <h3>The problem</h3>
-                    <p>Every semester, the same question in random group chats: <em>"Does anyone have the link for X?"</em> No central place. No organization. Just noise.</p>
+                <section class="about-block about-lead">
+                    <h3 class="about-heading"><span class="about-heading-icon" aria-hidden="true">💬</span> <span data-i18n="about_problem_h">The root problem</span></h3>
+                    <p data-i18n="about_problem_p1">Have you ever needed course materials — a Drive link, a Telegram group, an old exam — so you ask in a group chat… and everybody ghosts you? The biggest percentage is yes, you've been there. I faced the exact same challenge, and so have most students at the Lebanese University.</p>
+                    <p class="about-punch" data-i18n-html="about_problem_punch">From that exact problem, <strong>LU Links</strong> was born.</p>
                 </section>
 
-                <section class="about-block">
-                    <h3>How it started</h3>
-                    <p>In February 2025 I started a Telegram channel — <strong>Info Links</strong> — manually organizing course links, Drive folders, Classroom pages, and Telegram groups by program, year, and semester.</p>
-                    <p>What began as one person with a simple idea grew to <strong>300+ students</strong> in under a year. The problem was real — and bigger than I thought.</p>
-                </section>
+                <div class="about-grid">
+                    <section class="about-block about-card">
+                        <h3 class="about-heading"><span class="about-heading-icon" aria-hidden="true">🎯</span> <span data-i18n="about_what_h">What is LU Links</span></h3>
+                        <p data-i18n-html="about_what_p1">An initiative to gather all those useful links randomly scattered everywhere — Telegram groups, Google Drive folders, Classroom pages — and put them <strong>in one central place</strong>, easily reachable by all students.</p>
+                        <p data-i18n="about_what_p2">We're starting from zero, with a clear goal: a single hub where any LU student can find what they need without begging in group chats.</p>
+                    </section>
 
-                <section class="about-block">
-                    <h3>What it is today</h3>
-                    <p>Info Links is a free hub for <strong>50+ courses</strong> at Le CNAM Lebanon — from foundational subjects through License and partial Master's in Computer Science. Search by name or code, filter by program/year/semester, and find Drive, Classroom, Telegram, and other links in one place.</p>
-                    <p>Behind the scenes, the platform now runs on a <strong>Go REST API</strong> with the same Postgres database — same product students already use, with engineering that can grow with the community.</p>
-                </section>
+                    <section class="about-block about-card">
+                        <h3 class="about-heading"><span class="about-heading-icon" aria-hidden="true">⚙️</span> <span data-i18n="about_built_h">How it's built</span></h3>
+                        <p data-i18n-html="about_built_p1">A production-grade <strong>Go REST API</strong> backed by PostgreSQL — clean architecture, proper migrations, and a structured codebase designed to grow with the community.</p>
+                        <p data-i18n="about_built_p2">The frontend is lightweight vanilla JS, no heavy frameworks, so pages load fast even on slow connections.</p>
+                    </section>
+                </div>
 
-                <section class="about-block">
-                    <h3>Free, always</h3>
-                    <p>If I was a broke student looking for course materials, I wouldn't pay. So this stays free. It exists because of the community — and it belongs to the community.</p>
+                <section class="about-block about-free">
+                    <h3 class="about-heading"><span class="about-heading-icon" aria-hidden="true">💚</span> <span data-i18n="about_free_h">Free, always</span></h3>
+                    <p data-i18n="about_free_p">If I was a broke student looking for course materials, I wouldn't pay. So this stays free. LU Links exists because of the community — and it will always belong to it.</p>
                 </section>
 
                 <section class="about-block about-cta">
-                    <h3>Help it reach more people</h3>
-                    <p>If this project helps you, here's how you can support it:</p>
+                    <h3 class="about-heading"><span class="about-heading-icon" aria-hidden="true">🚀</span> <span data-i18n="about_help_h">Help us build this from day one</span></h3>
+                    <p data-i18n-html="about_help_p">We're literally starting from scratch — and that means <strong>every single link you submit matters</strong>. You know that Drive folder your friend shared at 2 AM before the exam? That Telegram group that saved your semester? Submit it here and help the next student find it without the struggle.</p>
                     <ul class="about-list">
-                        <li><strong>⭐ Star the repo</strong> on GitHub — it helps more students discover the project.</li>
-                        <li><strong>📎 Share a link</strong> — use <button type="button" class="about-inline-link" data-view="report-submit">Report / Contribute</button> to submit materials we don't have yet.</li>
-                        <li><strong>💻 Contribute code</strong> — the project is open source; issues and PRs are welcome.</li>
-                        <li><strong>📢 Spread the word</strong> — share with classmates or join the Telegram channel for updates.</li>
+                        <li>
+                            <span class="about-list-icon" aria-hidden="true">📎</span>
+                            <span data-i18n-html="about_li_submit"><strong>Submit a link</strong> — use <button type="button" class="about-inline-link" data-view="report-submit">Report / Contribute</button> to add any course material you have. Even one link helps.</span>
+                        </li>
+                        <li>
+                            <span class="about-list-icon" aria-hidden="true">⭐</span>
+                            <span data-i18n-html="about_li_feedback"><strong>Leave feedback</strong> — tell us what works and what doesn't via <button type="button" class="about-inline-link" data-view="feedback-suggestion">Feedback / Suggestion</button>.</span>
+                        </li>
+                        <li>
+                            <span class="about-list-icon" aria-hidden="true">💡</span>
+                            <span data-i18n-html="about_li_suggest"><strong>Suggest improvements</strong> — got an idea? We're building this <em>for</em> you, so your input shapes what comes next.</span>
+                        </li>
+                        <li>
+                            <span class="about-list-icon" aria-hidden="true">💻</span>
+                            <span data-i18n-html="about_li_code"><strong>Contribute code</strong> — the project is open source; issues and PRs are welcome.</span>
+                        </li>
+                        <li>
+                            <span class="about-list-icon" aria-hidden="true">📢</span>
+                            <span data-i18n-html="about_li_spread"><strong>Spread the word</strong> — share with classmates so more people know this exists.</span>
+                        </li>
                     </ul>
                     <div class="about-actions">
-                        <a class="btn btn-primary" href="https://github.com/MohamadObeid9/Info_Links" target="_blank" rel="noopener noreferrer">⭐ Star on GitHub</a>
-                        <a class="btn btn-ghost" href="https://t.me/Info_Links9" target="_blank" rel="noopener noreferrer">📢 Telegram</a>
-                        <button type="button" class="btn btn-ghost" data-view="report-submit">➕ Contribute a link</button>
+                        <a class="about-action-link footer-external-link" href="https://github.com/MohamadObeid9/LU_Links" data-url="https://github.com/MohamadObeid9/LU_Links">
+                            <span class="link-item-main">
+                                <span class="link-label" data-i18n="about_star_github">⭐ Star on GitHub</span>
+                                <button class="copy-btn" data-i18n-title="copy_link" data-i18n-aria="copy_link" title="Copy link" aria-label="Copy link">⎘</button>
+                            </span>
+                        </a>
+                        <a class="about-action-link footer-external-link" href="https://t.me/LU_Links9" data-url="https://t.me/LU_Links9">
+                            <span class="link-item-main">
+                                <span class="link-label" data-i18n="about_telegram_channel">📢 Telegram Channel</span>
+                                <button class="copy-btn" data-i18n-title="copy_link" data-i18n-aria="copy_link" title="Copy link" aria-label="Copy link">⎘</button>
+                            </span>
+                        </a>
+                        <button type="button" class="btn btn-primary about-contribute-btn" data-view="report-submit" data-i18n="about_contribute_btn">➕ Contribute a link</button>
                     </div>
                 </section>
             </div>
         </div>
 
-        <!-- FEEDBACK -->
-        <div class="view" id="view-feedback">
-            <h2 class="view-title">Share Your Feedback</h2>
-            <p class="view-subtitle">
-                Help us improve by sharing your experience and suggestions.
+        <!-- FEEDBACK / SUGGESTION -->
+        <div class="view" id="view-feedback-suggestion">
+            <h2 class="view-title" data-i18n="feedback_title">Feedback / Suggestion</h2>
+            <p class="view-subtitle" data-i18n="feedback_sub">
+                Rate your experience or suggest an improvement.
             </p>
-            <div class="feedback-wrap">
-                <div class="extra-section">
-                    <div class="extra-title"><span>⭐</span> Rate Your Experience</div>
-                    <div class="feedback-stars" id="starRating" role="radiogroup" aria-label="Rating">
-                        <button class="star" type="button" data-rating="1" aria-label="1 star">★</button>
-                        <button class="star" type="button" data-rating="2" aria-label="2 stars">★</button>
-                        <button class="star" type="button" data-rating="3" aria-label="3 stars">★</button>
-                        <button class="star" type="button" data-rating="4" aria-label="4 stars">★</button>
-                        <button class="star" type="button" data-rating="5" aria-label="5 stars">★</button>
+            <div class="report-grid feedback-grid">
+                <div class="report-box">
+                    <h3 class="feedback-card-title"><span class="report-box-icon" aria-hidden="true">⭐</span> <span data-i18n="feedback_card_title">Share your feedback</span></h3>
+                    <div class="report-box-body feedback-form">
+                        <label class="feedback-field-label" for="feedbackCategory"><span aria-hidden="true">📋</span> <span data-i18n="feedback_rate_label">What would you like to rate?</span></label>
+                        <select class="inp feedback-category" id="feedbackCategory" onchange="syncFeedbackFormSteps()">
+                            <option value="" data-i18n="ph_select_category">Select a category...</option>
+                            <option value="ui/ux" data-i18n="fb_cat_uiux">UI/UX Design</option>
+                            <option value="content" data-i18n="fb_cat_content">Content Quality</option>
+                            <option value="functionality" data-i18n="fb_cat_functionality">Functionality</option>
+                            <option value="performance" data-i18n="fb_cat_performance">Performance</option>
+                            <option value="accessibility" data-i18n="fb_cat_accessibility">Accessibility</option>
+                            <option value="other" data-i18n="fb_cat_other">Other</option>
+                        </select>
+
+                        <div id="feedbackRatingPlaceholder" class="contrib-placeholder" data-i18n="feedback_rating_placeholder">
+                            Select a category to rate your experience.
+                        </div>
+                        <div id="feedbackRatingStep" class="feedback-step" hidden>
+                            <div class="feedback-field-label"><span aria-hidden="true">⭐</span> <span data-i18n="feedback_rate_heading">Rate Your Experience</span></div>
+                            <div class="feedback-stars" id="starRating" role="radiogroup" data-i18n-aria="feedback_rating_aria" aria-label="Rating">
+                                <button class="star" type="button" data-rating="1" aria-label="1 star">★</button>
+                                <button class="star" type="button" data-rating="2" aria-label="2 stars">★</button>
+                                <button class="star" type="button" data-rating="3" aria-label="3 stars">★</button>
+                                <button class="star" type="button" data-rating="4" aria-label="4 stars">★</button>
+                                <button class="star" type="button" data-rating="5" aria-label="5 stars">★</button>
+                            </div>
+                            <div id="ratingDisplay" class="rating-display" data-i18n="feedback_select_rating">Select a rating</div>
+                        </div>
+
+                        <div id="feedbackMessagePlaceholder" class="contrib-placeholder" hidden data-i18n="feedback_msg_placeholder_hint">
+                            Select a rating to leave an optional note.
+                        </div>
+                        <div id="feedbackMessageStep" class="feedback-step" hidden>
+                            <textarea class="inp feedback-message" id="feedbackMessage" data-i18n-placeholder="ph_feedback_optional" placeholder="Your feedback (optional)…"></textarea>
+                        </div>
                     </div>
-                    <div id="ratingDisplay" class="rating-display">
-                        Select a rating</div>
-                    <div class="extra-title"><span>📋</span> What would you like to rate?</div>
-                    <select class="inp feedback-category" id="feedbackCategory">
-                        <option value="">Select a category...</option>
-                        <option value="ui/ux">UI/UX Design</option>
-                        <option value="content">Content Quality</option>
-                        <option value="functionality">Functionality</option>
-                        <option value="performance">Performance</option>
-                        <option value="accessibility">Accessibility</option>
-                        <option value="other">Other</option>
-                    </select>
-                    <textarea class="inp feedback-message" id="feedbackMessage" placeholder="Your feedback (optional)…"></textarea>
-                    <button class="btn btn-primary feedback-submit-btn" data-action="submitFeedback">Submit
-                        Feedback</button>
+                    <button class="btn btn-primary" id="submitFeedbackBtn" data-action="submitFeedback" data-i18n="btn_submit_feedback">Submit Feedback</button>
+                </div>
+
+                <div class="report-box">
+                    <h3 class="feedback-card-title"><span class="report-box-icon" aria-hidden="true">💡</span> <span data-i18n="suggestion_card_title">Suggest an improvement</span></h3>
+                    <div class="report-box-body feedback-form">
+                        <label class="feedback-field-label" for="suggestionCategory"><span aria-hidden="true">📋</span> <span data-i18n="suggestion_kind_label">What kind of suggestion?</span></label>
+                        <select class="inp feedback-category" id="suggestionCategory" onchange="syncSuggestionFormSteps()">
+                            <option value="" data-i18n="ph_select_category">Select a category...</option>
+                            <option value="feature" data-i18n="sug_cat_feature">New feature</option>
+                            <option value="ux" data-i18n="sug_cat_ux">UX / usability</option>
+                            <option value="content" data-i18n="sug_cat_content">Content</option>
+                            <option value="performance" data-i18n="sug_cat_performance">Performance</option>
+                            <option value="other" data-i18n="sug_cat_other">Other</option>
+                        </select>
+
+                        <div id="suggestionDescPlaceholder" class="contrib-placeholder" data-i18n="suggestion_desc_placeholder">
+                            Select a category to describe your idea.
+                        </div>
+                        <div id="suggestionDescStep" class="feedback-step" hidden>
+                            <textarea class="inp feedback-message" id="suggestionDescription" data-i18n-placeholder="ph_suggestion_desc" placeholder="Describe your improvement…"></textarea>
+                        </div>
+                    </div>
+                    <button class="btn btn-primary" id="submitSuggestionBtn" data-action="submitSuggestion" data-i18n="btn_submit_suggestion">Submit Suggestion</button>
                 </div>
             </div>
         </div>
@@ -210,11 +404,11 @@
         <!-- ADMIN GATE -->
         <div class="view" id="view-admin-gate">
             <div class="login-wrap">
-                <h2>Admin Login</h2>
-                <p>Enter your credentials to access the dashboard.</p>
-                <input type="email" id="adminEmail" placeholder="Email" />
-                <input type="password" id="adminPass" placeholder="Password" />
-                <button class="btn btn-primary login-submit-btn" data-action="checkLogin">Login</button>
+                <h2 data-i18n="admin_login_title">Admin Login</h2>
+                <p data-i18n="admin_login_sub">Enter your credentials to access the dashboard.</p>
+                <input type="email" id="adminEmail" data-i18n-placeholder="ph_admin_email" placeholder="Email" />
+                <input type="password" id="adminPass" data-i18n-placeholder="ph_admin_password" placeholder="Password" />
+                <button class="btn btn-primary login-submit-btn" data-action="checkLogin" data-i18n="btn_login">Login</button>
                 <div class="err" id="loginErr"></div>
             </div>
         </div>
@@ -231,9 +425,11 @@
             </div>
             <div class="admin-mobile-bar">
                 <select id="adminTabSelect" aria-label="Admin section">
+                    <option value="structure">Structure</option>
                     <option value="courses">Courses &amp; Links</option>
                     <option value="extra">Extra Resources</option>
-                    <option value="feedback">Feedback</option>
+                    <option value="feedback">Feedbacks</option>
+                    <option value="suggestions">Suggestions</option>
                     <option value="reports">Reports</option>
                     <option value="contributions">Contributions</option>
                     <option value="students">Students</option>
@@ -243,11 +439,13 @@
                 <div class="admin-mobile-alerts" id="adminMobileAlerts" hidden></div>
             </div>
             <div class="admin-tabs">
+                <button class="admin-tab" data-admin-tab="structure">Structure</button>
                 <button class="admin-tab active" data-admin-tab="courses">Courses &amp; Links</button>
                 <button class="admin-tab" data-admin-tab="extra">Extra Resources</button>
-                <button class="admin-tab" data-admin-tab="feedback">Feedback <span class="badge" id="feedbackBadge"></span></button>
-                <button class="admin-tab" data-admin-tab="reports">Reports <span class="badge" id="reportBadge"></span></button>
-                <button class="admin-tab" data-admin-tab="contributions">Contributions <span class="badge" id="contribBadge"></span></button>
+                <button class="admin-tab" data-admin-tab="feedback">Feedbacks <span class="badge" id="feedbackBadge" hidden></span></button>
+                <button class="admin-tab" data-admin-tab="suggestions">Suggestions <span class="badge" id="suggestionBadge" hidden></span></button>
+                <button class="admin-tab" data-admin-tab="reports">Reports <span class="badge" id="reportBadge" hidden></span></button>
+                <button class="admin-tab" data-admin-tab="contributions">Contributions <span class="badge" id="contribBadge" hidden></span></button>
                 <button class="admin-tab" data-admin-tab="students">Students</button>
                 <button class="admin-tab" data-admin-tab="analytics">Analytics</button>
             </div>
@@ -255,17 +453,17 @@
         </div>
 
         <footer class="site-footer">
-            <p class="footer-tagline">Built by students, for students.</p>
+            <p class="footer-tagline" data-i18n="footer_tagline">Built by students, for students.</p>
             <div class="footer-links">
-                <button type="button" class="footer-link-btn" data-view="about">About</button>
+                <button type="button" class="footer-link-btn" data-view="about" data-i18n="footer_about">About</button>
                 <span class="footer-sep">·</span>
-                <a href="https://t.me/Info_Links9" class="footer-external-link">Telegram</a>
+                <a href="https://t.me/LU_Links9" class="footer-external-link" data-i18n="footer_telegram">Telegram</a>
                 <span class="footer-sep">·</span>
-                <a href="https://github.com/MohamadObeid9/Info_Links" class="footer-external-link">GitHub</a>
+                <a href="https://github.com/MohamadObeid9/LU_Links" class="footer-external-link" data-i18n="footer_github">GitHub</a>
                 <span class="footer-sep">·</span>
-                <a href="https://www.linkedin.com/in/mohamadobeid9/" class="footer-external-link">LinkedIn</a>
+                <a href="https://www.linkedin.com/in/mohamadobeid9/" class="footer-external-link" data-i18n="footer_linkedin">LinkedIn</a>
             </div>
-            <p class="footer-copy">© 2026 Info Links · </p>
+            <p class="footer-copy">© <span id="footerYear">2026</span> LU Links</p>
         </footer>
 
         <div class="modal-overlay" id="modal">

@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"infolinks-backend/internal/config"
+	"lu-links/internal/config"
 )
 
 func TestRouterMetrics_openInDevelopment(t *testing.T) {

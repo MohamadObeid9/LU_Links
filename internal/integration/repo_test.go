@@ -7,8 +7,8 @@ import (
 	"encoding/json"
 	"testing"
 
-	"infolinks-backend/internal/errs"
-	"infolinks-backend/internal/models"
+	"lu-links/internal/errs"
+	"lu-links/internal/models"
 )
 
 func TestRepoUserGuestClaimAndCredentials(t *testing.T) {
@@ -77,7 +77,7 @@ func TestRepoContentGetReturnsJSON(t *testing.T) {
 	if err := json.Unmarshal(raw, &payload); err != nil {
 		t.Fatalf("content is not valid JSON: %v", err)
 	}
-	for _, key := range []string{"programs", "years", "courses", "links"} {
+	for _, key := range []string{"faculties", "branches", "years", "courses", "links"} {
 		if _, ok := payload[key]; !ok {
 			t.Fatalf("content JSON missing key %q", key)
 		}

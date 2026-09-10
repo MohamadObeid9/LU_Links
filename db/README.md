@@ -1,8 +1,8 @@
 # Database schema
 
-The Info Links Postgres schema is **versioned in this repo** instead of living only in the Supabase dashboard. That makes schema changes reviewable in PRs, reproducible across environments, and ready for CI integration tests against real Postgres.
+The LU Links Postgres schema is **versioned in this repo** instead of living only in the Supabase dashboard. That makes schema changes reviewable in PRs, reproducible across environments, and ready for CI integration tests against real Postgres.
 
-See [ADR 007: Versioned schema migrations](../docs/adr/007-versioned-schema-migrations.md) for the rationale.
+See [ADR 007: Versioned schema migrations](../docs/adr/007-versioned-schema-migrations.md) for the rationale. Hierarchy: [ADR 011](../docs/adr/011-lu-academic-hierarchy.md).
 
 ## Layout
 
@@ -18,11 +18,21 @@ db/
     ├── 000006_add_page_views_device_type.up.sql
     ├── 000007_add_rejected_feedback_status.up.sql
     ├── 000008_add_search_and_browse_events.up.sql
-    └── 000009_canonical_courses_and_placements.up.sql
+    ├── 000009_canonical_courses_and_placements.up.sql
+    ├── 000010_lu_hierarchy.up.sql
+    └── 000011_suggestions.up.sql
 ```
 
 - **`schema.sql`** — human-readable export for review and diffs; not meant to be executed directly.
 - **`000001_*.sql` …** — ordered migrations applied by [golang-migrate](https://github.com/golang-migrate/migrate) on fresh databases (local Docker, CI).
+
+**Current content model** (from `000010` + `000011`):
+
+- Faculties → Branches (campuses) → Specialisations → **Branch×Specialisation offerings** → Years → Semesters → Courses → Links
+- Links carry a `languages` JSON array (`ar` / `fr` / `en`)
+- `suggestions` table for student improvement ideas (status `new` / `read` / `rejected`)
+
+Older migrations still mention `programs` / `course_placements`; those shapes are replaced by `000010`.
 
 ## Prerequisites
 
@@ -57,25 +67,29 @@ Rollback one step (dev/CI only):
 migrate -path db/migrations -database "$DATABASE_URL" down 1
 ```
 
-**Production (Supabase):** existing databases already have this schema. Do not run `000001` against prod unless bootstrapping a new empty database. Future changes use `000002_*.up.sql`, etc.
+**Production (Supabase):** existing databases already have this schema. Do not run `000001` against prod unless bootstrapping a new empty database. Future changes use the next numbered migration.
 
 ## Tables
 
-Application-owned tables:
+Application-owned tables (post–LU hierarchy):
 
 | Table | Purpose |
 |-------|---------|
-| `programs` | Degree programs (e.g. Licence, Master) |
-| `years` | Academic years within a program |
+| `faculties` | Top-level faculties |
+| `branches` | Campuses / branches |
+| `faculty_branches` | Which campuses teach a faculty |
+| `specialisations` | Specialisations belonging to a faculty |
+| `branch_specialisations` | Offering root (campus × specialisation) |
+| `years` | Academic years under an offering |
 | `semesters` | Semesters within a year |
-| `courses` | Canonical courses (one row per code) |
-| `course_placements` | Course offerings (program / year / semester) |
-| `links` | Resource links attached to canonical courses |
+| `courses` | Courses under a semester (codes may repeat across offerings) |
+| `links` | Resource links on a course (`languages` JSON) |
 | `extra_sections` | Non-course link groupings |
 | `extra_links` | Links inside extra sections |
 | `reports` | User-submitted broken-link reports |
-| `contributions` | User-submitted new link suggestions |
+| `contributions` | User-submitted new link proposals |
 | `feedback` | User feedback and ratings |
+| `suggestions` | User improvement suggestions |
 | `page_views` | Page visit analytics |
 | `link_clicks` | Link click analytics |
 | `search_events` | Search query analytics |
@@ -98,8 +112,8 @@ Added in `000004_add_user_system` (see [ADR 008](../docs/adr/008-student-identit
 | `number` | 1-100, enforced by `users_number_range_chk`; null for guests |
 | `is_guest` | `true` until the visitor registers and claims the row |
 | `favorite_course_ids` | Current favorites set, kept for one-read "My Courses" |
-| `prefered_lang` | Read-only preference, default `eng`; CHECK allows `eng`, `fr`, `ar` (spelling matches the column) |
-| `prefered_theme` | Read-only preference, default `system`; CHECK allows `system`, `dark`, `light` |
+| `prefered_lang` | Preference, default `eng`; CHECK allows `eng`, `fr`, `ar`. Updatable via `PATCH /api/users/me/preferences` |
+| `prefered_theme` | Preference, default `system`; CHECK allows `system`, `dark`, `light`. Same PATCH endpoint |
 | `created_at`, `last_seen_at` | First seen and last activity |
 
 Uniqueness is a **partial index** — `users_unique_username` on `(first_name, last_name, number) WHERE is_guest = false`. Guests are exempt, so unnamed guest rows never collide. A duplicate registration raises `23505`, which the API returns as `409`.
@@ -108,7 +122,7 @@ Uniqueness is a **partial index** — `users_unique_username` on `(first_name, l
 
 ### `user_id` on activity tables
 
-The same migration adds a **nullable** `user_id` FK to `users(id)` on `page_views`, `link_clicks`, `reports`, `contributions`, and `feedback`, each with a `(user_id, <timestamp> DESC)` index for admin per-user queries.
+The same migration adds a **nullable** `user_id` FK to `users(id)` on `page_views`, `link_clicks`, `reports`, `contributions`, and `feedback`, each with a `(user_id, <timestamp> DESC)` index for admin per-user queries. `suggestions.user_id` follows the same pattern (`000011`).
 
 Nullable is intentional: rows written before this migration are anonymous legacy data with no owner to assign. New rows always carry the id from the student JWT. Aggregate queries that count people should use `COUNT(DISTINCT user_id)` and ignore nulls; queries that count students should filter `is_guest = false`.
 
@@ -151,18 +165,19 @@ Most contributors use a **hosted Supabase** instance via `DATABASE_URL` in `.env
 For **local Postgres** with the app in Docker (does not use `DATABASE_URL`):
 
 ```bash
-docker compose up --build
+make watch
+# or: docker compose up --build
 # schema: migrate; content: seed from db/test-data.json (skipped if already seeded)
 ```
 
 Or a **Postgres-only** container (then `go run ./cmd/server` with `APP_ENV=development`):
 
 ```bash
-docker run --rm -d --name infolinks-pg \
-  -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=infolinks \
+docker run --rm -d --name lu-links-pg \
+  -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=lu_links \
   -p 5432:5432 postgres:16-alpine
 
-export DATABASE_URL="postgres://postgres:postgres@localhost:5432/infolinks?sslmode=disable"
+export DATABASE_URL="postgres://postgres:postgres@localhost:5432/lu_links?sslmode=disable"
 migrate -path db/migrations -database "$DATABASE_URL" up
 ```
 
@@ -178,13 +193,13 @@ Coverage includes guest/register HTTP flows, `/readyz`, user claim SQL, and `/ap
 
 ## Seed course content
 
-A fresh local database has the schema (after `migrate up`) but no programs, courses, or links. Load them from an **admin backup JSON** — the same shape as **Admin → Export** (`programs`, `years`, `semesters`, `courses`, `links`, `extra_sections`, `extra_links`).
+A fresh local database has the schema (after `migrate up`) but no faculties, courses, or links. Load them from an **admin backup JSON** — the same shape as **Admin → Export** (`faculties`, `branches`, `specialisations`, `branch_specialisations`, `years`, `semesters`, `courses`, `links`, `extra_sections`, `extra_links`).
 
 Do **not** use `GET /api`. That is the welcome payload, not the course tree. `GET /api/content` or the admin Export button is the right source.
 
 ```bash
 # 1. Schema (once, or after wiping the container)
-export DATABASE_URL="postgres://postgres:postgres@localhost:5432/infolinks?sslmode=disable"
+export DATABASE_URL="postgres://postgres:postgres@localhost:5432/lu_links?sslmode=disable"
 migrate -path db/migrations -database "$DATABASE_URL" up
 
 # 2. Content (re-runnable; truncates the course tree first)
@@ -194,18 +209,18 @@ go run ./cmd/seed -file db/test-data.json
 Defaults:
 
 - `-file` → `db/test-data.json`
-- `-dsn` → `postgres://postgres:postgres@localhost:5432/infolinks?sslmode=disable`
+- `-dsn` → `postgres://postgres:postgres@localhost:5432/lu_links?sslmode=disable`
 
 The command refuses a non-localhost DSN unless you pass `-allow-remote`. It does **not** read `DATABASE_URL` from `.env`, so a production Supabase URL cannot be seeded by accident.
 
 What it does:
 
-1. Truncates `programs` and `extra_sections` (`CASCADE` also clears years, semesters, courses, links, extra links, clicks, and favorite events).
+1. Truncates `faculties`, `branches`, and `extra_sections` (`CASCADE` clears offerings, years, semesters, courses, links, extra links, clicks, and favorite events).
 2. Inserts rows with their original ids so foreign keys still line up.
 3. Resets identity sequences so new admin-created rows get the next id.
-4. Skips `link_clicks` — older dumps have `link_id: null` rows that fail the current check constraint. Student `users` and submissions are left alone.
+4. Skips `link_clicks` — older dumps may have rows that fail current checks. Student `users` and submissions are left alone.
 
-Replace `db/test-data.json` whenever you want fresher content: download a new `infolinks-backup-YYYY-MM-DD.json` from Admin → Export and pass `-file` to that path. Those files are gitignored.
+Replace `db/test-data.json` whenever you want fresher content: download a new backup from Admin → Export and pass `-file` to that path. Those files are gitignored when named as dated backups; the committed `test-data.json` is the LU-shaped sample for Docker seed.
 
 ## Related docs
 
@@ -213,3 +228,4 @@ Replace `db/test-data.json` whenever you want fresher content: download a new `i
 - [ADR 002: Supabase for auth and hosted Postgres](../docs/adr/002-supabase-for-auth-and-hosted-postgres.md)
 - [ADR 007: Versioned schema migrations](../docs/adr/007-versioned-schema-migrations.md)
 - [ADR 008: Student identity without passwords](../docs/adr/008-student-identity-without-passwords.md)
+- [ADR 011: LU academic hierarchy](../docs/adr/011-lu-academic-hierarchy.md)

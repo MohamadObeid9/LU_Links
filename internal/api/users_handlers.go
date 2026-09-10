@@ -4,9 +4,9 @@ import (
 	"errors"
 	"net/http"
 
-	"infolinks-backend/internal/errs"
-	"infolinks-backend/internal/middleware"
-	"infolinks-backend/internal/models"
+	"lu-links/internal/errs"
+	"lu-links/internal/middleware"
+	"lu-links/internal/models"
 )
 
 // credentialsBody is the signup and login payload. Identity flags never come from
@@ -90,6 +90,30 @@ func (h *Handler) handleGetMe(w http.ResponseWriter, r *http.Request) {
 	user, err := h.userService.GetUser(r.Context(), userID)
 	if err != nil {
 		mapGetUserErr(h, w, r, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, user)
+}
+
+type preferencesBody struct {
+	PreferedLang  string `json:"prefered_lang"`
+	PreferedTheme string `json:"prefered_theme"`
+}
+
+func (h *Handler) handlePatchPreferences(w http.ResponseWriter, r *http.Request) {
+	userID, ok := requireUserID(w, r)
+	if !ok {
+		return
+	}
+
+	var body preferencesBody
+	if !decodeJSONBody(w, r, &body) {
+		return
+	}
+
+	user, err := h.userService.UpdatePreferences(r.Context(), userID, body.PreferedLang, body.PreferedTheme)
+	if err != nil {
+		mapPreferencesErr(h, w, r, err)
 		return
 	}
 	writeJSON(w, http.StatusOK, user)
@@ -186,11 +210,28 @@ func mapLoginUserErr(h *Handler, w http.ResponseWriter, r *http.Request, err err
 func mapGetUserErr(h *Handler, w http.ResponseWriter, r *http.Request, err error) {
 	switch {
 	case errors.Is(err, errs.ErrUserNotFound):
-		writeJSONError(w, r, http.StatusNotFound, "User not found")
+		// Stale JWT after DB reset / deleted user — clients must drop the token.
+		writeJSONError(w, r, http.StatusUnauthorized, "Unauthorized: User not found")
 	case errors.Is(err, errs.ErrUserInvalidID):
 		writeJSONError(w, r, http.StatusBadRequest, "Invalid user id")
 	default:
 		h.LoggerWithID(r).Error("get user failed", "error", err)
+		writeJSONError(w, r, http.StatusInternalServerError, "Internal server error")
+	}
+}
+
+func mapPreferencesErr(h *Handler, w http.ResponseWriter, r *http.Request, err error) {
+	switch {
+	case errors.Is(err, errs.ErrUserInvalidLang):
+		writeJSONError(w, r, http.StatusBadRequest, "Language must be eng, fr, or ar")
+	case errors.Is(err, errs.ErrUserInvalidTheme):
+		writeJSONError(w, r, http.StatusBadRequest, "Theme must be system, dark, or light")
+	case errors.Is(err, errs.ErrUserNotFound):
+		writeJSONError(w, r, http.StatusNotFound, "User not found")
+	case errors.Is(err, errs.ErrUserInvalidID):
+		writeJSONError(w, r, http.StatusBadRequest, "Invalid user id")
+	default:
+		h.LoggerWithID(r).Error("update preferences failed", "error", err)
 		writeJSONError(w, r, http.StatusInternalServerError, "Internal server error")
 	}
 }

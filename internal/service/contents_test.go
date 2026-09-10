@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"infolinks-backend/internal/errs"
+	"lu-links/internal/errs"
 )
 
 type fakeContentRepo struct {
@@ -23,6 +23,22 @@ func (f *fakeContentRepo) Get(ctx context.Context) ([]byte, error) {
 		return nil, f.getErr
 	}
 	return f.getResult, nil
+}
+
+func (f *fakeContentRepo) GetHierarchy(ctx context.Context) ([]byte, error) {
+	return f.Get(ctx)
+}
+
+func (f *fakeContentRepo) GetOffering(ctx context.Context, offeringID int) ([]byte, error) {
+	return f.Get(ctx)
+}
+
+func (f *fakeContentRepo) Search(ctx context.Context, q string, limit int) ([]byte, error) {
+	return f.Get(ctx)
+}
+
+func (f *fakeContentRepo) GetCoursesByIDs(ctx context.Context, ids []int) ([]byte, error) {
+	return f.Get(ctx)
 }
 
 func TestContentService_Get(t *testing.T) {

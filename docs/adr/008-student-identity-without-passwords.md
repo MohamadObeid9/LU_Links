@@ -2,7 +2,7 @@
 
 ## Context
 
-Info Links could not answer a basic question: **how many people actually use it?** Analytics stored anonymous rows — `page_views` and `link_clicks` had no notion of a person, so 300+ visits could be 300 students or 30 students visiting ten times. Reports, contributions, and feedback arrived with no author, so admins could not follow up or spot repeat contributors. Favorites lived only in `localStorage`, so a student who switched from phone to laptop lost their starred courses.
+LU Links could not answer a basic question: **how many people actually use it?** Analytics stored anonymous rows — `page_views` and `link_clicks` had no notion of a person, so 300+ visits could be 300 students or 30 students visiting ten times. Reports, contributions, and feedback arrived with no author, so admins could not follow up or spot repeat contributors. Favorites lived only in `localStorage`, so a student who switched from phone to laptop lost their starred courses.
 
 Constraints that shaped the answer:
 
@@ -29,7 +29,7 @@ Introduce a **second, separate identity system for students** that identifies ra
 
 **3. Guest-then-claim sessions.** A first-time visitor gets a guest row (`is_guest = true`) and a guest JWT before doing anything, so their page view is attributable. When they register, that **same row is claimed** — `UPDATE users SET ... WHERE id = $guest AND is_guest = true` — so the id, the `created_at`, and every pre-signup event stay attached to the person, and no duplicate visit is counted.
 
-**4. App-issued student JWT**, signed with the same `JWT_SECRET`, carrying a user id claim and an is-guest flag, 365-day expiry, stored in `localStorage` under `infolinks_student_token`. Admin tokens use the same 365-day expiry, their own `admin: true` claim, and the `infolinks_token` key. A new `RequireUser` middleware sits alongside `RequireAdmin`; neither accepts the other's token.
+**4. App-issued student JWT**, signed with the same `JWT_SECRET`, carrying a user id claim and an is-guest flag, 365-day expiry, stored in `localStorage` under `lu_links_student_token`. Admin tokens use the same 365-day expiry, their own `admin: true` claim, and the `lu_links_token` key. A new `RequireUser` middleware sits alongside `RequireAdmin`; neither accepts the other's token.
 
 **5. Activity carries `user_id`.** A nullable `user_id` FK is added to `page_views`, `link_clicks`, `reports`, `contributions`, and `feedback`. Nullable because rows written before this migration are genuinely anonymous and we do not want to invent an owner for them. A new append-only `favorite_events` table (`user_id`, `course_id`, `action` of `added` or `removed`, `created_at`) records favorites history, while `users.favorite_course_ids` stays the live set; both are written in one transaction.
 

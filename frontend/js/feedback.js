@@ -1,10 +1,11 @@
 import { AppState } from "./state.js";
 import { sb, apiRequest, formatApiError, logApiError } from "./supabase.js";
 import { showToast } from "./export.js";
-import { esc, setBtnLoading, adminCell } from "./ui.js";
+import { esc, setBtnLoading, adminCell, adminLongText } from "./ui.js";
 import { loadReportsBadges } from "./data.js";
 import { getAdminTableSkeleton } from "./skeleton.js";
 import { loadStudentDirectory, senderDetail } from "./students.js";
+import { t } from "./i18n.js";
 
 // Feedback management
 const FEEDBACK_PAGE_SIZE = 10;
@@ -37,43 +38,75 @@ function setAdminFeedbackPage(delta) {
 
 async function submitFeedback() {
     if (!window.requireStudent(submitFeedback)) return;
-    const btn = document.querySelector("#view-feedback .btn-primary");
+    const btn = document.getElementById("submitFeedbackBtn");
     const category = document.getElementById('feedbackCategory').value;
     if (!category) {
-        showToast('Please select a category', true);
+        showToast(t('toast_need_category'), true);
         return;
     }
 
     if (currentRating === 0) {
-        showToast('Please select a rating', true);
+        showToast(t('toast_need_rating'), true);
         return;
     }
 
     const message = document.getElementById('feedbackMessage').value.trim();
 
-    setBtnLoading(btn, true, "Submitting…");
+    setBtnLoading(btn, true, t("btn_submitting"));
     try {
         await apiRequest("/api/feedback", {
             method: "POST",
             body: { category, rating: currentRating, message }
         });
-        showToast('Thank you for your feedback!');
+        showToast(t('toast_feedback_ok'));
         currentRating = 0;
         document.getElementById('feedbackCategory').value = '';
         document.getElementById('feedbackMessage').value = '';
         updateStarDisplay();
+        syncFeedbackFormSteps();
     } catch (err) {
         if (window.handleStudentAuthError?.(err, submitFeedback)) return;
         logApiError(err, 'submitFeedback');
-        showToast(formatApiError(err, 'Failed to submit feedback'), true);
+        showToast(formatApiError(err, t('toast_feedback_fail')), true);
     } finally {
         setBtnLoading(btn, false);
+    }
+}
+
+function syncFeedbackFormSteps() {
+    const category = document.getElementById('feedbackCategory')?.value || '';
+    const ratingPlaceholder = document.getElementById('feedbackRatingPlaceholder');
+    const ratingStep = document.getElementById('feedbackRatingStep');
+    const messagePlaceholder = document.getElementById('feedbackMessagePlaceholder');
+    const messageStep = document.getElementById('feedbackMessageStep');
+    if (!ratingStep || !messageStep) return;
+
+    const hasCategory = !!category;
+    const hasRating = currentRating > 0;
+
+    if (!hasCategory && currentRating !== 0) {
+        currentRating = 0;
+        updateStarDisplay();
+        const msg = document.getElementById('feedbackMessage');
+        if (msg) msg.value = '';
+    }
+
+    if (ratingPlaceholder) ratingPlaceholder.hidden = hasCategory;
+    ratingStep.hidden = !hasCategory;
+
+    if (messagePlaceholder) messagePlaceholder.hidden = !(hasCategory && !hasRating);
+    messageStep.hidden = !(hasCategory && hasRating);
+
+    if (!hasRating) {
+        const msg = document.getElementById('feedbackMessage');
+        if (msg && !hasCategory) msg.value = '';
     }
 }
 
 function setRating(rating) {
     currentRating = rating;
     updateStarDisplay();
+    syncFeedbackFormSteps();
 }
 
 function handleStarHover(rating) {
@@ -92,14 +125,19 @@ function updateStarDisplay() {
     document.querySelectorAll('#starRating .star').forEach((star) => {
         const value = Number(star.dataset.rating || 0);
         star.classList.toggle('active', value <= currentRating);
+        const starKey = value === 1 ? "feedback_star_n" : "feedback_star_n_plural";
+        star.setAttribute("aria-label", t(starKey, { n: value }));
     });
 
     const displayDiv = document.getElementById('ratingDisplay');
+    if (!displayDiv) return;
     if (currentRating > 0) {
-        displayDiv.textContent = `${currentRating} out of 5 stars`;
+        displayDiv.removeAttribute("data-i18n");
+        displayDiv.textContent = t("rating_out_of_5", { n: currentRating });
         displayDiv.style.color = 'var(--accent)';
     } else {
-        displayDiv.textContent = 'Select a rating';
+        displayDiv.setAttribute("data-i18n", "feedback_select_rating");
+        displayDiv.textContent = t("feedback_select_rating");
         displayDiv.style.color = 'var(--muted)';
     }
 }
@@ -126,9 +164,9 @@ async function renderAdminFeedback() {
             return;
         }
 
-        let html = `<input class="admin-search" placeholder="🔍 Search feedback…" value="${esc(AppState.adminSearch)}" oninput="AppState.adminSearch=this.value;resetAdminFeedbackPage();renderAdminFeedback()"/>`;
+        let html = `<input class="admin-search" placeholder="🔍 Search feedbacks…" value="${esc(AppState.adminSearch)}" oninput="AppState.adminSearch=this.value;resetAdminFeedbackPage();renderAdminFeedback()"/>`;
         if (feedback.length === 0) {
-            const emptyMsg = q ? `No feedback matching "${esc(q)}" found.` : "No feedback yet.";
+            const emptyMsg = q ? `No feedback matching "${esc(q)}" found.` : "No feedbacks yet.";
             contentDiv.innerHTML = html + `<div style="padding: 20px; text-align: center; color: var(--muted);">${emptyMsg}</div>`;
             return;
         }
@@ -154,7 +192,6 @@ async function renderAdminFeedback() {
             const emptyStars = '★'.repeat(5 - item.rating);
             const stars = `<span style="color: gold;">${filledStars}</span><span style="color: #999;">${emptyStars}</span>`;
             const ratingText = `${item.rating}/5`;
-            const message = esc(item.message) || '(no message)';
             const statusClass = item.status === 'new'
                 ? 'tag-blue'
                 : item.status === 'rejected'
@@ -168,7 +205,7 @@ async function renderAdminFeedback() {
                     ${adminCell("admin-detail", "Date", date)}
                     ${adminCell("admin-detail", "Category", `<span class="tag tag-gray">${categoryDisplay}</span>`)}
                     ${adminCell("admin-pri", "Rating", `<span style="font-size: 1.1rem;" title="${ratingText}">${stars}</span><span style="font-size: 0.9rem; color: var(--text); font-weight: 600; margin-left: 8px;">${ratingText}</span>`)}
-                    ${adminCell("admin-sec", "Message", message)}
+                    ${adminCell("admin-sec", "Message", adminLongText(item.message, { empty: "(no message)" }))}
                     ${adminCell("admin-meta", "Status", `<span class="tag ${statusClass}">${esc(item.status || 'new')}</span>`)}
                     ${adminCell("admin-actions action-btns", "Actions", _feedbackActions(item))}
                 </tr>
@@ -228,6 +265,8 @@ Object.assign(window, {
   setRating,
   handleStarHover,
   clearStarHover,
+  syncFeedbackFormSteps,
+  updateStarDisplay,
   renderAdminFeedback,
   setAdminFeedbackPage,
   resetAdminFeedbackPage,
@@ -236,4 +275,6 @@ Object.assign(window, {
   deleteFeedback,
 });
 
-export { updateStarDisplay, renderAdminFeedback };
+syncFeedbackFormSteps();
+
+export { updateStarDisplay, renderAdminFeedback, syncFeedbackFormSteps };

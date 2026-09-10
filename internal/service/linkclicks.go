@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	"infolinks-backend/internal/errs"
-	"infolinks-backend/internal/models"
-	"infolinks-backend/internal/repository"
+	"lu-links/internal/errs"
+	"lu-links/internal/models"
+	"lu-links/internal/repository"
 )
 
 type LinkClickService struct {

@@ -7,9 +7,9 @@ import (
 	"strconv"
 	"strings"
 
-	"infolinks-backend/internal/errs"
-	"infolinks-backend/internal/models"
-	"infolinks-backend/internal/repository"
+	"lu-links/internal/errs"
+	"lu-links/internal/models"
+	"lu-links/internal/repository"
 )
 
 type UserService struct {
@@ -77,6 +77,21 @@ func (s *UserService) LoginUser(ctx context.Context, guestID int, u models.User)
 	return user, nil
 }
 
+const guestRetentionDays = 100
+
+// DeleteExpiredGuests removes anonymous guests whose created_at is older than maxAgeDays.
+// Pass 0 (or less) to use the default retention of 100 days.
+func (s *UserService) DeleteExpiredGuests(ctx context.Context, maxAgeDays int) (int64, error) {
+	if maxAgeDays <= 0 {
+		maxAgeDays = guestRetentionDays
+	}
+	n, err := s.repo.DeleteExpiredGuests(ctx, maxAgeDays)
+	if err != nil {
+		return 0, fmt.Errorf("delete expired guests: %w", err)
+	}
+	return n, nil
+}
+
 func (s *UserService) GetUser(ctx context.Context, userID int) (models.User, error) {
 	if userID <= 0 {
 		return models.User{}, errs.ErrUserInvalidID
@@ -87,6 +102,44 @@ func (s *UserService) GetUser(ctx context.Context, userID int) (models.User, err
 		return models.User{}, fmt.Errorf("get user: %w", err)
 	}
 	return user, nil
+}
+
+func (s *UserService) UpdatePreferences(ctx context.Context, userID int, lang, theme string) (models.User, error) {
+	if userID <= 0 {
+		return models.User{}, errs.ErrUserInvalidID
+	}
+	lang = strings.TrimSpace(lang)
+	theme = strings.TrimSpace(theme)
+	if !validPreferedLang(lang) {
+		return models.User{}, errs.ErrUserInvalidLang
+	}
+	if !validPreferedTheme(theme) {
+		return models.User{}, errs.ErrUserInvalidTheme
+	}
+
+	user, err := s.repo.UpdatePreferences(ctx, userID, lang, theme)
+	if err != nil {
+		return models.User{}, fmt.Errorf("update preferences: %w", err)
+	}
+	return user, nil
+}
+
+func validPreferedLang(lang string) bool {
+	switch lang {
+	case "eng", "fr", "ar":
+		return true
+	default:
+		return false
+	}
+}
+
+func validPreferedTheme(theme string) bool {
+	switch theme {
+	case "system", "dark", "light":
+		return true
+	default:
+		return false
+	}
 }
 
 func (s *UserService) AddFavorite(ctx context.Context, userID int, courseIDStr string) error {

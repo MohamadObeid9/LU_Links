@@ -31,12 +31,13 @@ func (h *Handler) handleReadyz(w http.ResponseWriter, r *http.Request) {
 // HandleApiRoot provides a simple directory of available endpoints.
 func (h *Handler) handleApiRoot(w http.ResponseWriter, r *http.Request) {
 	response := map[string]any{
-		"message": "Welcome to the Info Links API!",
+		"message": "Welcome to the LU Links API!",
 		"usage":   "This is a Go backend serving JSON data.",
 		"public_endpoints": []map[string]string{
 			{"path": "/api/content", "method": "GET", "description": "Fetch the full navigation tree."},
 			{"path": "/api/auth/login", "method": "POST", "description": "Admin login (returns JWT token)."},
 			{"path": "/api/feedback", "method": "POST", "description": "Submit user feedback."},
+			{"path": "/api/suggestions", "method": "POST", "description": "Submit a site improvement suggestion."},
 			{"path": "/api/reports", "method": "POST", "description": "Submit a course/link report."},
 			{"path": "/api/page_views", "method": "POST", "description": "Record a page view (analytics)."},
 			{"path": "/api/link_clicks", "method": "POST", "description": "Record a link click (analytics)."},
@@ -49,6 +50,7 @@ func (h *Handler) handleApiRoot(w http.ResponseWriter, r *http.Request) {
 			{"path": "/api/admin/links", "method": "POST/PATCH/DELETE", "description": "Manage links."},
 			{"path": "/api/admin/reports", "method": "GET/PATCH/DELETE", "description": "Manage user reports."},
 			{"path": "/api/admin/feedback", "method": "GET/PATCH/DELETE", "description": "Manage feedback."},
+			{"path": "/api/admin/suggestions", "method": "GET/PATCH/DELETE", "description": "Manage suggestions."},
 			{"path": "/api/admin/contributions", "method": "GET/PATCH/DELETE", "description": "Manage user contributions."},
 			{"path": "/api/admin/extra_sections", "method": "GET/POST/PATCH/DELETE", "description": "Manage extra sections."},
 			{"path": "/api/admin/extra_links", "method": "GET/POST/PATCH/DELETE", "description": "Manage extra links."},

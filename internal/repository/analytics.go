@@ -5,7 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 
-	"infolinks-backend/internal/models"
+	"lu-links/internal/models"
 )
 
 type postgresAnalyticsRepository struct {
@@ -49,6 +49,7 @@ func (r *postgresAnalyticsRepository) GetSummary(ctx context.Context, params Ana
 		&summary.Inbox.Reports,
 		&summary.Inbox.Contributions,
 		&summary.Inbox.Feedback,
+		&summary.Inbox.Suggestions,
 		&summary.Browse.ReachedYear,
 		&summary.Browse.ReachedList,
 		&summary.ActiveRegisteredInRange,

@@ -2,7 +2,7 @@
 
 ## Context
 
-Info Links is a single Go binary that:
+LU Links is a single Go binary that:
 
 - Serves the REST API
 - Serves built frontend static files (`frontend/dist`)
@@ -38,7 +38,7 @@ Deploy as a **single Render Web Service** using **Docker**:
 - **Liveness:** `GET /healthz` — process up, no DB check
 - **Graceful shutdown:** on `SIGTERM` (Render deploys), `http.Server.Shutdown` drains in-flight requests before the process exits and the DB pool closes
 - **Logs:** JSON `slog` in production for Render log stream
-- **Domains:** `infolinks.app`, `www.infolinks.app`
+- **Domains:** production site for LU Links (see `SITE_BASE_URL`)
 - **CDN:** Cloudflare in front of Render — hashed Vite assets and `GET /api/content` (`Cache-Control: public, max-age=60, stale-while-revalidate=600`). A cron request every 10 minutes keeps `/api/content` warm at the edge.
 
 Database stays on **Supabase** (separate service) — not in the same Render service as a Postgres container.

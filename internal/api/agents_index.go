@@ -9,16 +9,16 @@ import (
 func (h *Handler) handleAgentsIndex(w http.ResponseWriter, r *http.Request) {
 	base := h.baseURL()
 	doc := map[string]any{
-		"origin":  "infolinks.app",
+		"origin":  "lu-links.onrender.com",
 		"version": "1.0",
 		"organization": map[string]any{
-			"name": "Info Links",
+			"name": "LU Links",
 			"url":  base + "/",
 		},
 		"agents": map[string]any{
-			"info-links": map[string]any{
+			"lu-links": map[string]any{
 				"location": map[string]any{
-					"fqdn":     "infolinks.app",
+					"fqdn":     "lu-links.onrender.com",
 					"endpoint": h.absURL("/api"),
 					"wellKnown": map[string]any{
 						"a2a": h.absURL("/.well-known/agent-card.json"),
@@ -26,9 +26,9 @@ func (h *Handler) handleAgentsIndex(w http.ResponseWriter, r *http.Request) {
 					},
 				},
 				"model-card": map[string]any{
-					"description": "CNAM Liban student materials hub — browse courses, open shared links, and submit reports or contributions via a JSON HTTP API.",
+					"description": "Lebanese University course materials hub — browse courses, open shared links, and submit reports or contributions via a JSON HTTP API.",
 					"version":     "1.0.0",
-					"provider":    "Info Links",
+					"provider":    "LU Links",
 				},
 				"capability": map[string]any{
 					"protocols": []string{"a2a", "mcp"},

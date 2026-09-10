@@ -10,11 +10,11 @@ import (
 	"strings"
 	"testing"
 
-	"infolinks-backend/internal/database"
-	"infolinks-backend/internal/errs"
-	"infolinks-backend/internal/middleware"
-	"infolinks-backend/internal/repository"
-	"infolinks-backend/internal/service"
+	"lu-links/internal/database"
+	"lu-links/internal/errs"
+	"lu-links/internal/middleware"
+	"lu-links/internal/repository"
+	"lu-links/internal/service"
 )
 
 func testSEOHandler(t *testing.T) *Handler {
@@ -246,7 +246,7 @@ func TestHandleCoursesIndexSuccess(t *testing.T) {
 	if rr.Code != http.StatusOK {
 		t.Fatalf("status %d", rr.Code)
 	}
-	if !strings.Contains(rr.Body.String(), "Tous les cours CNAM") {
+	if !strings.Contains(rr.Body.String(), "Tous les cours LU") {
 		t.Fatal("expected courses index heading")
 	}
 }

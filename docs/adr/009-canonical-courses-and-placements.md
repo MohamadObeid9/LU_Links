@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted
+Accepted for the CNAM-era schema. **Superseded for Lebanese University** by [ADR 011](011-lu-academic-hierarchy.md) (offerings replace placements; course codes may repeat across offerings).
 
 ## Context
 

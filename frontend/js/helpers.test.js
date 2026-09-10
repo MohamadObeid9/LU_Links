@@ -3,26 +3,28 @@ import { _saveCache, _loadCache, _clearCache } from "./cache.js";
 import { esc } from "./ui.js";
 
 describe("cache", () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     localStorage.clear();
+    await _clearCache();
   });
 
-  it("saves and loads payload", () => {
-    _saveCache({ programs: [{ id: 1 }] });
-    const loaded = _loadCache();
+  it("saves and loads payload", async () => {
+    await _saveCache({ programs: [{ id: 1 }] }, { key: "hierarchy", etag: '"abc"' });
+    const loaded = await _loadCache("hierarchy");
     expect(loaded).not.toBeNull();
     expect(loaded.data.programs[0].id).toBe(1);
+    expect(loaded.etag).toBe('"abc"');
     expect(loaded.stale).toBe(false);
   });
 
-  it("returns null when empty", () => {
-    expect(_loadCache()).toBeNull();
+  it("returns null when empty", async () => {
+    expect(await _loadCache("hierarchy")).toBeNull();
   });
 
-  it("clears stored entries", () => {
-    _saveCache({ ok: true });
-    _clearCache();
-    expect(_loadCache()).toBeNull();
+  it("clears stored entries", async () => {
+    await _saveCache({ ok: true }, { key: "hierarchy" });
+    await _clearCache();
+    expect(await _loadCache("hierarchy")).toBeNull();
   });
 });
 

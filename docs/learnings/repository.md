@@ -122,7 +122,7 @@ Each domain defines four query constants; the helper returns `(query, args)`.
 
 `ContentRepository.Get` runs a single Postgres query that builds the entire navigation tree as JSON:
 
-- Subqueries with `json_agg` for each table (years, courses, programs, …)
+- Subqueries with `json_agg` for each table (faculties, offerings, years, courses, …)
 - `json_build_object` wraps everything into one payload
 - Returns `[]byte` — handler writes it directly without re-encoding
 
@@ -136,7 +136,7 @@ SEO has its own DTOs in `seo_models.go` (`CoursePageData`, `SEOLink`, `CoursePla
 
 `postgresSEORepository`:
 
-- Joins courses → semesters → years → programs for placement info
+- Joins courses → semesters → years → offerings (branch×specialisation) for hierarchy info
 - Fetches links for course IDs in a second query
 - Returns `errs.ErrCourseNotFound` when no rows match a course code
 

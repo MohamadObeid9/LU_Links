@@ -1,27 +1,28 @@
-# Info Links
+# LU Links
 
-Centralized course resource hub for CNAM Lebanon CS students — **50+ courses**, **300+ active users**, served by a **production Go API** .
+Course materials hub for **Lebanese University** — faculties, campuses, and specialisations — served by a **production Go API**.
 
-[![CI](https://github.com/MohamadObeid9/Info_Links/actions/workflows/ci.yml/badge.svg)](https://github.com/MohamadObeid9/Info_Links/actions/workflows/ci.yml)
+[![CI](https://github.com/MohamadObeid9/LU_Links/actions/workflows/ci.yml/badge.svg)](https://github.com/MohamadObeid9/LU_Links/actions/workflows/ci.yml)
 ![Go](https://img.shields.io/badge/Go-1.25-00ADD8?logo=go&logoColor=white)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/MohamadObeid9/Info_Links)
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/mohamadobeid9/lu_links)
 
-**[infolinks.app](https://infolinks.app)** · [User guide](docs/user-guide.md) · [ADRs](docs/adr/) · [Contributing](CONTRIBUTING.md)
+**[LU Links](https://lu-links.onrender.com/)** · [User guide](docs/user-guide.md) · [ADRs](docs/adr/) · [Contributing](CONTRIBUTING.md)
 
 ## Quick start
 
 ```bash
-git clone https://github.com/MohamadObeid9/Info_Links.git && cd Info_Links
+git clone https://github.com/MohamadObeid9/LU_Links.git && cd LU_Links
 cp .env.example .env   # fill DATABASE_URL, JWT_SECRET, Supabase keys
-go run ./cmd/server    # → http://localhost:8080
+make dev               # API :8080 + Vite UI :5173 (recommended)
+# or: go run ./cmd/server   → http://localhost:8080
 ```
 
 ## Overview
 
-Info Links centralizes course materials (Google Drive, Classroom, Telegram, and more) by program, year, and semester. The backend is Go (`net/http`, layered architecture, ~74% statement coverage across packages); the frontend is vanilla JS with Vite. Production runs as Docker on Render with CI-gated deploys.
+LU Links centralizes course materials (Google Drive, Classroom, Telegram, and more) by **faculty → campus → specialisation**, then year and semester. The UI is available in **English, French, and Arabic** (Arabic uses RTL; the admin dashboard stays English / LTR). The backend is Go (`net/http`, layered architecture); the frontend is vanilla JS with Vite. Production runs as Docker on Render with CI-gated deploys.
 
-Using the app? See the [user guide](docs/user-guide.md).
+Using the app? See the [user guide](docs/user-guide.md). Hierarchy design: [ADR 011](docs/adr/011-lu-academic-hierarchy.md).
 
 ---
 
@@ -56,8 +57,9 @@ HTTP request
 The Go server also:
 
 - Serves the built frontend from `frontend/dist` (or `frontend/` source in local dev when `dist/` is absent)
-- Renders SSR SEO pages for `/course/{code}`, `/program/{slug}`, `/courses`, sitemap, and robots.txt
+- Renders SSR SEO pages for `/course/{code}`, `/program/{slug}` (faculty/offering pages), `/courses`, sitemap, and robots.txt
 - Exposes a JSON API under `/api/*` — see `GET /api` for a live endpoint directory
+- Go module path is `lu-links` (`go.mod`)
 - Shuts down gracefully on `SIGTERM`/`SIGINT` (waits for in-flight requests, then closes the DB pool)
 
 Production traffic hits **Cloudflare** first: hashed static files and `GET /api/content` are cached at the edge. A 10-minute cron ping keeps `/api/content` warm. Origin also keeps a 60s in-memory copy (`singleflight` on miss) so a flood that skips the CDN does not run the JSON aggregation once per request. k6 against that origin (2026-09-01): 50-VU normal load p95 **1.53 ms** (100% 200); burst **~17k req/s** with 99.93% 429s and p95 of allowed 200s **8.91 ms**. Same-day uncached normal p95 was **4.91 s**. Details: [`docs/load-test.md`](docs/load-test.md).
@@ -65,7 +67,7 @@ Production traffic hits **Cloudflare** first: hashed static files and `GET /api/
 **Deploy pipeline:**
 
 ```text
-PR → GitHub Actions (test, lint, govulncheck, docker build) → merge main → Render (checksPass) → infolinks.app
+PR → GitHub Actions (test, lint, govulncheck, docker build) → merge main → Render (checksPass) → production (LU Links)
 ```
 
 Deep dives: [`docs/adr/`](docs/adr/) · [`docs/learnings/`](docs/learnings/)
@@ -75,7 +77,7 @@ Deep dives: [`docs/adr/`](docs/adr/) · [`docs/learnings/`](docs/learnings/)
 ## Project structure
 
 ```text
-info_links/
+LU_Links/
 ├── cmd/server/           # Entry point (HTTP timeouts + graceful shutdown)
 ├── cmd/seed/             # Load an admin backup JSON into local Postgres
 ├── internal/
@@ -90,7 +92,7 @@ info_links/
 │   ├── device/           # User-Agent → phone/laptop classification
 │   ├── webbotauth/       # Web Bot Auth JWKS + HTTP Message Signatures
 │   └── errs/             # Sentinel errors
-├── frontend/             # Vanilla JS SPA (Vite for dev/build)
+├── frontend/             # Vanilla JS SPA (Vite for dev/build; i18n eng/fr/ar)
 ├── db/
 │   ├── migrations/       # Versioned Postgres schema (golang-migrate + schema.sql snapshot)
 │   └── README.md         # How to apply migrations locally and in CI
@@ -101,6 +103,7 @@ info_links/
 │   └── user-guide.md     # Student and admin walkthrough
 ├── Dockerfile            # Multi-stage: Node build → Go build → distroless
 ├── docker-compose.yml    # Local Postgres + migrate + seed + app
+├── Makefile              # make dev | watch | up | down | rebuild
 ├── .air.toml             # Go hot-reload config
 └── .env.example          # Required environment variables
 ```
@@ -116,7 +119,7 @@ info_links/
 - **Node.js 20+** (frontend build and Vite dev server)
 - **Supabase project** with a Postgres connection string
 - **Docker & Docker Compose v2.22+** (optional, for containerized dev)
-- **[Air](https://github.com/air-verse/air)** (optional, for Go hot reload)
+- **[Air](https://github.com/air-verse/air)** (optional, for Go hot reload — used by `make dev`)
 
 ### Environment
 
@@ -136,10 +139,18 @@ Copy [`.env.example`](.env.example) to `.env` and fill in:
 
 ### Run locally
 
-**Fastest path** — no frontend build needed (serves `frontend/` source):
+**Recommended** — API + Vite (instant HTML/CSS/JS):
+
+```bash
+make dev
+# → API http://localhost:8080  ·  UI http://localhost:5173
+```
+
+**Single port** — no frontend build needed (serves `frontend/` source when `dist/` is absent):
 
 ```bash
 go run ./cmd/server
+# → http://localhost:8080
 ```
 
 **Production-like assets** — includes PWA manifest and service worker:
@@ -149,8 +160,6 @@ cd frontend && npm ci && npm run build && cd ..
 go run ./cmd/server
 ```
 
-Open [http://localhost:8080](http://localhost:8080).
-
 ---
 
 ## Development
@@ -159,32 +168,21 @@ Pick the workflow that matches what you're changing.
 
 | Goal | Command |
 |------|---------|
-| Fastest dev loop | `air` + `npm run dev` (see below) |
+| Daily UI / API coding | `make dev` (Air + Vite on :5173) |
 | API work, single port | `go run ./cmd/server` |
-| Full stack in Docker, auto-rebuild | `make watch` or `docker compose up --watch` |
-| First run / Dockerfile changed | `make rebuild` or `docker compose up --build` |
-| Verify container builds once | `make build` or `docker compose build` |
-| Match CI image build | `docker build -t infolinks:local .` |
-| Restart existing containers | `make up` or `docker compose up` |
+| Full stack in Docker, auto-rebuild | `make watch` |
+| First run / Dockerfile changed | `make rebuild` |
+| Verify container builds once | `make build` |
+| Match CI image build | `docker build -t lu-links:local .` |
+| Stop Docker stack | `make down` |
 
 ### Native (recommended for daily coding)
 
-**Terminal 1** — Go API on port 8080:
-
 ```bash
-go run ./cmd/server
-# or, for Go hot reload:
-air
+make dev
 ```
 
-**Terminal 2** — Vite dev server on port 5173 (proxies `/api` and SEO routes to 8080):
-
-```bash
-cd frontend && npm ci && npm run dev
-# → http://localhost:5173
-```
-
-Use **5173** while editing HTML/CSS/JS. Fastest feedback loop.
+Or two terminals: `air` (or `go run ./cmd/server`) on **8080**, and `npm --prefix frontend run dev` on **5173**. Use **5173** while editing HTML/CSS/JS.
 
 ### Docker (local app + local Postgres)
 
@@ -198,22 +196,30 @@ make up
 
 Seeding uses `-if-empty` so later `up` does not wipe local edits. Wipe and re-seed with `docker compose down -v` then `up` again.
 
-`COMPOSE_DISABLE_ENV_FILE=1` stops Compose from treating `$` in `.env` (for example a Supabase password) as a variable. The app still loads `.env` with `format: raw`. Or run `make up`.
+`COMPOSE_DISABLE_ENV_FILE=1` stops Compose from treating `$` in `.env` (for example a Supabase password) as a variable. The app still loads `.env` with `format: raw`. Or run `make up` / `make watch` (Makefile sets this).
 
-`APP_ENV=development` uses `LOCAL_DATABASE_URL` pointing at the `db` service. `.env` still supplies JWT and Supabase Auth keys. Postgres is published on host `5432` as well (`postgres://postgres:postgres@localhost:5432/infolinks?sslmode=disable`) for `air` / `go run` against the same local database.
+`APP_ENV=development` uses `LOCAL_DATABASE_URL` pointing at the `db` service. `.env` still supplies JWT and Supabase Auth keys. Postgres is published on host `5432` as well (`postgres://postgres:postgres@localhost:5432/lu_links?sslmode=disable`) for `air` / `go run` against the same local database.
 
-**Watch (rebuild app on file changes):**
+**Watch (rebuild app image on Go/frontend changes):**
 
 ```bash
 make watch
-# or: COMPOSE_DISABLE_ENV_FILE=1 docker compose up --watch
+```
+
+Frontend changes trigger a **full image rebuild** (~30–40s). Prefer `make dev` for CSS/JS iteration. After a Docker rebuild, hard-refresh the browser (PWA may cache hashed assets).
+
+Restart cleanly:
+
+```bash
+make down
+make watch   # or: make rebuild
 ```
 
 **Build image only (same as CI):**
 
 ```bash
-docker build -t infolinks:local .
-docker run --rm -p 8080:8080 --env-file .env infolinks:local
+docker build -t lu-links:local .
+docker run --rm -p 8080:8080 --env-file .env lu-links:local
 ```
 
 ---
@@ -224,14 +230,14 @@ docker run --rm -p 8080:8080 --env-file .env infolinks:local
 go test -race ./cmd/... ./internal/...
 golangci-lint run ./cmd/... ./internal/...
 cd frontend && npm ci && npm run lint && npm test && npm run build
-docker build -t infolinks:local .
+docker build -t lu-links:local .
 ```
 
 **Integration tests** (real Postgres — repo + HTTP flows):
 
 ```bash
 # Start Postgres and apply migrations (see db/README.md)
-export INTEGRATION_DATABASE_URL="postgres://postgres:postgres@localhost:5432/infolinks?sslmode=disable"
+export INTEGRATION_DATABASE_URL="postgres://postgres:postgres@localhost:5432/lu_links?sslmode=disable"
 migrate -path db/migrations -database "$INTEGRATION_DATABASE_URL" up
 go test -tags=integration -race ./internal/integration/...
 ```
@@ -252,7 +258,7 @@ Single Docker web service on [Render](https://render.com):
 | **Start** | `ENTRYPOINT ["/server"]` |
 | **Health check** | `GET /readyz` |
 | **Auto-deploy** | On merge to `main`, only when CI checks pass |
-| **Domains** | [infolinks.app](https://infolinks.app), www.infolinks.app |
+| **Site** | [LU Links](https://lu-links.onrender.com/) (production hostname via `SITE_BASE_URL`) |
 | **CDN** | Cloudflare in front of Render |
 
 The [Dockerfile](Dockerfile) is multi-stage: Node builds `frontend/dist`, Go compiles the server, final image runs on distroless as non-root. CI runs the same `docker build` before Render deploys — what is tested is what ships.
@@ -275,7 +281,7 @@ Set environment variables in the Render dashboard (see [`.env.example`](.env.exa
 | [`docs/user-guide.md`](docs/user-guide.md) | Student and admin walkthrough |
 | [`docs/roadmap.md`](docs/roadmap.md) | Milestones and planned work |
 | [`frontend/README.md`](frontend/README.md) | Frontend layout |
-| [DEV — origin story](https://dev.to/mohamadobeid9/i-built-a-free-course-resource-platform-for-my-university-heres-the-real-story-1645) | How Info Links started |
+| [DEV — origin story](https://dev.to/mohamadobeid9/i-built-a-free-course-resource-platform-for-my-university-heres-the-real-story-1645) | How the project started |
 | [DEV — Go rebuild](https://dev.to/mohamadobeid9/from-supabase-only-to-production-go-month-1-of-rebuilding-info-links-3a4p) | Backend migration write-up |
 
 ---
@@ -288,9 +294,10 @@ Contributions welcome — see [CONTRIBUTING.md](CONTRIBUTING.md). Security issue
 
 ## Connect
 
-- **Live site** — [infolinks.app](https://infolinks.app/)
-- **GitHub** — [MohamadObeid9/Info_Links](https://github.com/MohamadObeid9/Info_Links)
-- **Telegram** — [@Info_Links9](https://t.me/Info_Links9)
+- **Live site** — [LU Links](https://lu-links.onrender.com/)
+- **GitHub** — [MohamadObeid9/LU_Links](https://github.com/MohamadObeid9/LU_Links)
+- **Telegram channel** — [@LU_Links9](https://t.me/LU_Links9)
+- **Contributing guide** — [Telegram](https://t.me/LU_Links_Contributing_Guide)
 - **LinkedIn** — [MohamadObeid9](https://www.linkedin.com/in/mohamadobeid9/)
 
 ---

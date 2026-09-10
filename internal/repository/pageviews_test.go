@@ -3,8 +3,8 @@ package repository
 import (
 	"context"
 	"errors"
-	"infolinks-backend/internal/errs"
-	"infolinks-backend/internal/models"
+	"lu-links/internal/errs"
+	"lu-links/internal/models"
 	"reflect"
 	"testing"
 

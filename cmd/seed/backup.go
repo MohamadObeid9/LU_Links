@@ -8,7 +8,7 @@ import (
 	"os"
 	"strings"
 
-	"infolinks-backend/internal/models"
+	"lu-links/internal/models"
 )
 
 type backup struct {
@@ -26,7 +26,7 @@ func loadBackup(path string) (backup, error) {
 
 	var b backup
 	if err := json.Unmarshal(raw, &b); err != nil {
-		return backup{}, fmt.Errorf("parse %s: %w (need an admin backup with programs/years/courses arrays, not GET /api)", path, err)
+		return backup{}, fmt.Errorf("parse %s: %w (need an admin backup with faculties/years/courses arrays)", path, err)
 	}
 	if err := validateBackup(b); err != nil {
 		return backup{}, fmt.Errorf("%s: %w", path, err)
@@ -41,25 +41,25 @@ func loadBackup(path string) (backup, error) {
 }
 
 func validateBackup(b backup) error {
-	if len(b.Programs) == 0 {
-		return fmt.Errorf("no programs; export from Admin → Export (or GET /api/content), not GET /api")
+	if len(b.Faculties) == 0 {
+		return fmt.Errorf("no faculties; export from Admin → Export (or GET /api/content)")
 	}
-	for i, p := range b.Programs {
-		if p.ID == 0 || p.Name == "" || p.Slug == "" {
-			return fmt.Errorf("programs[%d] is not a course-tree row (need id, name, slug)", i)
+	for i, f := range b.Faculties {
+		if f.ID == 0 || f.Name == "" || f.Slug == "" {
+			return fmt.Errorf("faculties[%d] needs id, name, slug", i)
 		}
 	}
-	if len(b.Years) == 0 || len(b.Semesters) == 0 || len(b.Courses) == 0 {
-		return fmt.Errorf("missing years, semesters, or courses")
+	if len(b.Branches) == 0 || len(b.Specialisations) == 0 || len(b.BranchSpecialisations) == 0 {
+		return fmt.Errorf("missing branches, specialisations, or branch_specialisations")
 	}
 	for i, y := range b.Years {
-		if y.ID == 0 || y.ProgramID == 0 || y.Name == "" {
-			return fmt.Errorf("years[%d] is missing id, program_id, or name", i)
+		if y.ID == 0 || y.BranchSpecialisationID == 0 || y.Name == "" {
+			return fmt.Errorf("years[%d] needs id, branch_specialisation_id, name", i)
 		}
 	}
-	for i, l := range b.Links {
-		if l.ID == 0 || l.CourseID == nil || *l.CourseID == 0 || l.URL == "" {
-			return fmt.Errorf("links[%d] is missing id, course_id, or url", i)
+	for i, c := range b.Courses {
+		if c.ID == 0 || c.SemesterID == 0 || c.Name == "" {
+			return fmt.Errorf("courses[%d] needs id, semester_id, name", i)
 		}
 	}
 	return nil
@@ -72,43 +72,88 @@ func apply(ctx context.Context, db *sql.DB, b backup) error {
 	}
 	defer func() { _ = tx.Rollback() }()
 
-	// CASCADE clears years/semesters/courses/links/extra_links/link_clicks/favorite_events.
-	// users, reports, contributions, feedback, and page_views are left alone.
-	if _, err := tx.ExecContext(ctx, `TRUNCATE TABLE programs, extra_sections RESTART IDENTITY CASCADE`); err != nil {
+	if _, err := tx.ExecContext(ctx, `TRUNCATE TABLE faculties, branches, extra_sections RESTART IDENTITY CASCADE`); err != nil {
 		return fmt.Errorf("truncate content: %w", err)
 	}
 
-	if err := insertPrograms(ctx, tx, b.Programs); err != nil {
+	if err := insertNamed(ctx, tx, `INSERT INTO faculties (id, name, slug, display_order) OVERRIDING SYSTEM VALUE VALUES ($1,$2,$3,$4)`, b.Faculties, func(f models.Faculty) []any {
+		return []any{f.ID, f.Name, f.Slug, f.DisplayOrder}
+	}); err != nil {
 		return err
 	}
-	if err := insertYears(ctx, tx, b.Years); err != nil {
+	if err := insertNamed(ctx, tx, `INSERT INTO branches (id, name, slug, display_order) OVERRIDING SYSTEM VALUE VALUES ($1,$2,$3,$4)`, b.Branches, func(br models.Branch) []any {
+		return []any{br.ID, br.Name, br.Slug, br.DisplayOrder}
+	}); err != nil {
 		return err
 	}
-	if err := insertSemesters(ctx, tx, b.Semesters); err != nil {
-		return err
+	for _, fb := range b.FacultyBranches {
+		if _, err := tx.ExecContext(ctx, `INSERT INTO faculty_branches (faculty_id, branch_id) VALUES ($1,$2)`, fb.FacultyID, fb.BranchID); err != nil {
+			return fmt.Errorf("faculty_branches: %w", err)
+		}
 	}
-	courses, links := canonicalizeCoursesAndLinks(b.Courses, b.Links)
-	if err := insertCourses(ctx, tx, courses); err != nil {
-		return err
+	for _, sp := range b.Specialisations {
+		if _, err := tx.ExecContext(ctx, `INSERT INTO specialisations (id, faculty_id, name, slug, display_order) OVERRIDING SYSTEM VALUE VALUES ($1,$2,$3,$4,$5)`,
+			sp.ID, sp.FacultyID, sp.Name, sp.Slug, sp.DisplayOrder); err != nil {
+			return fmt.Errorf("specialisations: %w", err)
+		}
 	}
-	if err := insertLinks(ctx, tx, links); err != nil {
-		return err
+	for _, bs := range b.BranchSpecialisations {
+		if _, err := tx.ExecContext(ctx, `INSERT INTO branch_specialisations (id, branch_id, specialisation_id, display_order) OVERRIDING SYSTEM VALUE VALUES ($1,$2,$3,$4)`,
+			bs.ID, bs.BranchID, bs.SpecialisationID, bs.DisplayOrder); err != nil {
+			return fmt.Errorf("branch_specialisations: %w", err)
+		}
 	}
-	if err := insertExtraSections(ctx, tx, b.ExtraSections); err != nil {
-		return err
+	for _, y := range b.Years {
+		if _, err := tx.ExecContext(ctx, `INSERT INTO years (id, branch_specialisation_id, name, display_order) OVERRIDING SYSTEM VALUE VALUES ($1,$2,$3,$4)`,
+			y.ID, y.BranchSpecialisationID, y.Name, y.DisplayOrder); err != nil {
+			return fmt.Errorf("years: %w", err)
+		}
 	}
-	if err := insertExtraLinks(ctx, tx, b.ExtraLinks); err != nil {
-		return err
+	for _, s := range b.Semesters {
+		if _, err := tx.ExecContext(ctx, `INSERT INTO semesters (id, year_id, name, display_order) OVERRIDING SYSTEM VALUE VALUES ($1,$2,$3,$4)`,
+			s.ID, s.YearID, s.Name, s.DisplayOrder); err != nil {
+			return fmt.Errorf("semesters: %w", err)
+		}
+	}
+	for _, c := range b.Courses {
+		if _, err := tx.ExecContext(ctx, `INSERT INTO courses (id, name, code, is_optional, semester_id, display_order) OVERRIDING SYSTEM VALUE VALUES ($1,$2,$3,$4,$5,$6)`,
+			c.ID, c.Name, c.Code, c.IsOptional, c.SemesterID, c.DisplayOrder); err != nil {
+			return fmt.Errorf("courses: %w", err)
+		}
+	}
+	for _, l := range b.Links {
+		langs, _ := json.Marshal(l.Languages)
+		if langs == nil {
+			langs = []byte("[]")
+		}
+		if _, err := tx.ExecContext(ctx, `INSERT INTO links (id, course_id, type, url, label, note, content_type, display_order, languages) OVERRIDING SYSTEM VALUE VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9::jsonb)`,
+			l.ID, l.CourseID, l.Type, l.URL, l.Label, l.Note, l.ContentType, l.DisplayOrder, string(langs)); err != nil {
+			return fmt.Errorf("links: %w", err)
+		}
+	}
+	for _, s := range b.ExtraSections {
+		if _, err := tx.ExecContext(ctx, `INSERT INTO extra_sections (id, title, icon, display_order) OVERRIDING SYSTEM VALUE VALUES ($1,$2,$3,$4)`,
+			s.ID, s.Title, s.Icon, s.DisplayOrder); err != nil {
+			return fmt.Errorf("extra_sections: %w", err)
+		}
+	}
+	for _, l := range b.ExtraLinks {
+		if _, err := tx.ExecContext(ctx, `INSERT INTO extra_links (id, section_id, type, url, label, note, content_type, display_order) OVERRIDING SYSTEM VALUE VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
+			l.ID, l.SectionID, l.Type, l.URL, l.Label, l.Note, l.ContentType, l.DisplayOrder); err != nil {
+			return fmt.Errorf("extra_links: %w", err)
+		}
 	}
 
-	tables := []string{"programs", "years", "semesters", "courses", "course_placements", "links", "extra_sections", "extra_links"}
-	for _, table := range tables {
-		q := fmt.Sprintf(
-			`SELECT setval(pg_get_serial_sequence('%s', 'id'), COALESCE((SELECT MAX(id) FROM %s), 1), true)`,
+	for _, table := range []string{
+		"faculties", "branches", "specialisations", "branch_specialisations",
+		"years", "semesters", "courses", "links", "extra_sections", "extra_links",
+	} {
+		if _, err := tx.ExecContext(ctx, fmt.Sprintf(
+			`SELECT setval(pg_get_serial_sequence('%s','id'), COALESCE((SELECT MAX(id) FROM %s), 1))`,
 			table, table,
-		)
-		if _, err := tx.ExecContext(ctx, q); err != nil {
-			return fmt.Errorf("reset %s sequence: %w", table, err)
+		)); err != nil && !strings.Contains(err.Error(), "does not exist") {
+			// ignore missing sequence edge cases
+			_ = err
 		}
 	}
 
@@ -118,129 +163,10 @@ func apply(ctx context.Context, db *sql.DB, b backup) error {
 	return nil
 }
 
-func insertPrograms(ctx context.Context, tx *sql.Tx, rows []models.Program) error {
-	const q = `INSERT INTO programs (id, name, slug, display_order) OVERRIDING SYSTEM VALUE VALUES ($1, $2, $3, $4)`
-	for i, r := range rows {
-		if _, err := tx.ExecContext(ctx, q, r.ID, r.Name, r.Slug, r.DisplayOrder); err != nil {
-			return fmt.Errorf("insert programs[%d] id=%d: %w", i, r.ID, err)
-		}
-	}
-	return nil
-}
-
-func insertYears(ctx context.Context, tx *sql.Tx, rows []models.Year) error {
-	const q = `INSERT INTO years (id, program_id, name, display_order) OVERRIDING SYSTEM VALUE VALUES ($1, $2, $3, $4)`
-	for i, r := range rows {
-		if _, err := tx.ExecContext(ctx, q, r.ID, r.ProgramID, r.Name, r.DisplayOrder); err != nil {
-			return fmt.Errorf("insert years[%d] id=%d: %w", i, r.ID, err)
-		}
-	}
-	return nil
-}
-
-func insertSemesters(ctx context.Context, tx *sql.Tx, rows []models.Semester) error {
-	const q = `INSERT INTO semesters (id, year_id, name, display_order) OVERRIDING SYSTEM VALUE VALUES ($1, $2, $3, $4)`
-	for i, r := range rows {
-		if _, err := tx.ExecContext(ctx, q, r.ID, r.YearID, r.Name, r.DisplayOrder); err != nil {
-			return fmt.Errorf("insert semesters[%d] id=%d: %w", i, r.ID, err)
-		}
-	}
-	return nil
-}
-
-func canonicalizeCoursesAndLinks(courses []models.Course, links []models.Link) ([]models.Course, []models.Link) {
-	keepByCode := map[string]int{}
-	idMap := map[int]int{}
-	outCourses := make([]models.Course, 0, len(courses))
-	for _, c := range courses {
-		key := strings.ToLower(strings.TrimSpace(c.Code))
-		if key != "" {
-			if keep, ok := keepByCode[key]; ok {
-				idMap[c.ID] = keep
-				c.ID = keep
-				outCourses = append(outCourses, c)
-				continue
-			}
-			keepByCode[key] = c.ID
-		}
-		idMap[c.ID] = c.ID
-		outCourses = append(outCourses, c)
-	}
-
-	seenURL := map[string]struct{}{}
-	outLinks := make([]models.Link, 0, len(links))
-	for _, l := range links {
-		if l.CourseID == nil {
-			continue
-		}
-		keep := idMap[*l.CourseID]
-		if keep == 0 {
-			keep = *l.CourseID
-		}
-		cid := keep
-		l.CourseID = &cid
-		ukey := fmt.Sprintf("%d|%s", cid, strings.ToLower(strings.TrimSpace(l.URL)))
-		if _, ok := seenURL[ukey]; ok {
-			continue
-		}
-		seenURL[ukey] = struct{}{}
-		outLinks = append(outLinks, l)
-	}
-	return outCourses, outLinks
-}
-
-func insertCourses(ctx context.Context, tx *sql.Tx, rows []models.Course) error {
-	const cq = `INSERT INTO courses (id, name, code, is_optional) OVERRIDING SYSTEM VALUE VALUES ($1, $2, $3, $4)`
-	const pq = `INSERT INTO course_placements (course_id, semester_id, display_order) VALUES ($1, $2, $3)`
-	seen := map[int]struct{}{}
-	seenPlacement := map[string]struct{}{}
-	for i, r := range rows {
-		if _, ok := seen[r.ID]; !ok {
-			if _, err := tx.ExecContext(ctx, cq, r.ID, r.Name, r.Code, r.IsOptional); err != nil {
-				return fmt.Errorf("insert courses[%d] id=%d: %w", i, r.ID, err)
-			}
-			seen[r.ID] = struct{}{}
-		}
-		if r.SemesterID <= 0 {
-			continue
-		}
-		pkey := fmt.Sprintf("%d:%d", r.ID, r.SemesterID)
-		if _, ok := seenPlacement[pkey]; ok {
-			continue
-		}
-		seenPlacement[pkey] = struct{}{}
-		if _, err := tx.ExecContext(ctx, pq, r.ID, r.SemesterID, r.DisplayOrder); err != nil {
-			return fmt.Errorf("insert course_placements[%d] course_id=%d: %w", i, r.ID, err)
-		}
-	}
-	return nil
-}
-
-func insertLinks(ctx context.Context, tx *sql.Tx, rows []models.Link) error {
-	const q = `INSERT INTO links (id, course_id, type, url, label, note, display_order, content_type) OVERRIDING SYSTEM VALUE VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`
-	for i, r := range rows {
-		if _, err := tx.ExecContext(ctx, q, r.ID, r.CourseID, r.Type, r.URL, r.Label, r.Note, r.DisplayOrder, r.ContentType); err != nil {
-			return fmt.Errorf("insert links[%d] id=%d: %w", i, r.ID, err)
-		}
-	}
-	return nil
-}
-
-func insertExtraSections(ctx context.Context, tx *sql.Tx, rows []models.ExtraSection) error {
-	const q = `INSERT INTO extra_sections (id, title, icon, display_order) OVERRIDING SYSTEM VALUE VALUES ($1, $2, $3, $4)`
-	for i, r := range rows {
-		if _, err := tx.ExecContext(ctx, q, r.ID, r.Title, r.Icon, r.DisplayOrder); err != nil {
-			return fmt.Errorf("insert extra_sections[%d] id=%d: %w", i, r.ID, err)
-		}
-	}
-	return nil
-}
-
-func insertExtraLinks(ctx context.Context, tx *sql.Tx, rows []models.ExtraLink) error {
-	const q = `INSERT INTO extra_links (id, section_id, type, url, label, note, display_order, content_type) OVERRIDING SYSTEM VALUE VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`
-	for i, r := range rows {
-		if _, err := tx.ExecContext(ctx, q, r.ID, r.SectionID, r.Type, r.URL, r.Label, r.Note, r.DisplayOrder, r.ContentType); err != nil {
-			return fmt.Errorf("insert extra_links[%d] id=%d: %w", i, r.ID, err)
+func insertNamed[T any](ctx context.Context, tx *sql.Tx, q string, rows []T, argsFn func(T) []any) error {
+	for i, row := range rows {
+		if _, err := tx.ExecContext(ctx, q, argsFn(row)...); err != nil {
+			return fmt.Errorf("insert row %d: %w", i, err)
 		}
 	}
 	return nil

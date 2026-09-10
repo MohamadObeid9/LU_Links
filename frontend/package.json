@@ -1,7 +1,7 @@
 {
-  "name": "infolinks-frontend",
+  "name": "lu-links-frontend",
   "version": "1.0.0",
-  "description": "Info Links Frontend",
+  "description": "LU Links Frontend",
   "main": "main.js",
   "type": "module",
   "scripts": {

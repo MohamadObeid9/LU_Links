@@ -4,8 +4,8 @@ import "fmt"
 
 // User represents a user or a guest.
 // PreferedLang and PreferedTheme keep the DB spelling (single r) on purpose so
-// the column, the struct field and the JSON key never drift apart. They are
-// read-only for now: the API exposes them but has no endpoint to change them.
+// the column, the struct field and the JSON key never drift apart.
+// Lang: eng | fr | ar (default eng). Theme: system | dark | light (default system).
 type User struct {
 	ID                int    `json:"id"`
 	FirstName         string `json:"first_name"`
@@ -44,7 +44,7 @@ type UserListItem struct {
 
 // UserActivityEvent is one entry of a student activity timeline.
 type UserActivityEvent struct {
-	Type       string `json:"type"` // visit, link_click, report, contribution, feedback, favorite_added, favorite_removed
+	Type       string `json:"type"` // visit, link_click, report, contribution, feedback, suggestion, favorite_added, favorite_removed
 	At         string `json:"at"`
 	Summary    string `json:"summary"`
 	RefID      int    `json:"ref_id"`
@@ -116,6 +116,7 @@ type AnalyticsInbox struct {
 	Reports       int `json:"reports"`
 	Contributions int `json:"contributions"`
 	Feedback      int `json:"feedback"`
+	Suggestions   int `json:"suggestions"`
 }
 
 // BrowseDepth is unique students who reached each mobile/desktop picker step.
@@ -196,20 +197,52 @@ func UserHandle(firstName, lastName string, number, id int) string {
 	return fmt.Sprintf("%s_%s_%d", firstName, lastName, number)
 }
 
-// Program represents a major or field of study
-type Program struct {
+// Faculty is a top-level academic unit (e.g. Faculty of Sciences).
+type Faculty struct {
 	ID           int    `json:"id"`
 	Name         string `json:"name"`
 	Slug         string `json:"slug"`
 	DisplayOrder int    `json:"display_order"`
 }
 
-// Year represents an academic year within a program
-type Year struct {
+// Branch is a campus where faculties are taught.
+type Branch struct {
 	ID           int    `json:"id"`
 	Name         string `json:"name"`
-	ProgramID    int    `json:"program_id"`
+	Slug         string `json:"slug"`
 	DisplayOrder int    `json:"display_order"`
+}
+
+// FacultyBranch links a faculty to a branch where it is offered.
+type FacultyBranch struct {
+	FacultyID int `json:"faculty_id"`
+	BranchID  int `json:"branch_id"`
+}
+
+// Specialisation belongs to one faculty and is the same catalog entry across branches.
+type Specialisation struct {
+	ID           int    `json:"id"`
+	FacultyID    int    `json:"faculty_id"`
+	Name         string `json:"name"`
+	Slug         string `json:"slug"`
+	DisplayOrder int    `json:"display_order"`
+}
+
+// BranchSpecialisation is a faculty specialisation offered at a specific branch.
+// Years → semesters → courses → links hang under this offering (resources are not shared).
+type BranchSpecialisation struct {
+	ID                int `json:"id"`
+	BranchID          int `json:"branch_id"`
+	SpecialisationID  int `json:"specialisation_id"`
+	DisplayOrder      int `json:"display_order"`
+}
+
+// Year represents an academic year within a branch×specialisation offering.
+type Year struct {
+	ID                     int    `json:"id"`
+	Name                   string `json:"name"`
+	BranchSpecialisationID int    `json:"branch_specialisation_id"`
+	DisplayOrder           int    `json:"display_order"`
 }
 
 // Semester represents a semester within an academic year
@@ -220,37 +253,36 @@ type Semester struct {
 	DisplayOrder int    `json:"display_order"`
 }
 
-// Course is a canonical catalog row. SemesterID and PlacementID are the
-// offering: the same id can appear under several programs via placements.
+// Course belongs to one semester in one branch×specialisation tree.
 type Course struct {
 	ID           int    `json:"id"`
 	Name         string `json:"name"`
 	Code         string `json:"code"`
 	IsOptional   bool   `json:"is_optional"`
 	SemesterID   int    `json:"semester_id"`
-	PlacementID  int    `json:"placement_id,omitempty"`
 	DisplayOrder int    `json:"display_order"`
 }
 
 // CoursePatch represents an updating course
 type CoursePatch struct {
-	Name        *string `json:"name"`
-	Code        *string `json:"code"`
-	IsOptional  *bool   `json:"is_optional"`
-	SemesterID  *int    `json:"semester_id"`
-	PlacementID *int    `json:"placement_id"`
+	Name       *string `json:"name"`
+	Code       *string `json:"code"`
+	IsOptional *bool   `json:"is_optional"`
+	SemesterID *int    `json:"semester_id"`
 }
 
-// Link represents a useful resource for a course or extra section
+// Link represents a useful resource for a course.
+// Languages is a list of ar / fr / en codes this link serves.
 type Link struct {
-	ID           int     `json:"id"`
-	Type         string  `json:"type"`
-	Label        string  `json:"label"`
-	URL          string  `json:"url"`
-	Note         string  `json:"note"`
-	ContentType  *string `json:"content_type"`
-	DisplayOrder int     `json:"display_order"`
-	CourseID     *int    `json:"course_id,omitempty"`
+	ID           int      `json:"id"`
+	Type         string   `json:"type"`
+	Label        string   `json:"label"`
+	URL          string   `json:"url"`
+	Note         string   `json:"note"`
+	ContentType  *string  `json:"content_type"`
+	DisplayOrder int      `json:"display_order"`
+	CourseID     *int     `json:"course_id,omitempty"`
+	Languages    []string `json:"languages"`
 }
 
 // ExtraSection represents a non-course category of links
@@ -307,6 +339,16 @@ type Feedback struct {
 	CreatedAt string `json:"created_at"`
 }
 
+// Suggestion represents a site-improvement suggestion (no rating).
+type Suggestion struct {
+	ID          int    `json:"id"`
+	UserID      int    `json:"user_id,omitempty"`
+	Status      string `json:"status"` // new, read, rejected
+	Description string `json:"description"`
+	Category    string `json:"category"`
+	CreatedAt   string `json:"created_at"`
+}
+
 // PageView tracks site visits
 type PageView struct {
 	ID         int    `json:"id"`
@@ -327,11 +369,15 @@ type LinkClick struct {
 
 // ContentResponse is the big JSON object we send to the frontend.
 type ContentResponse struct {
-	Links         []Link         `json:"links"`
-	Years         []Year         `json:"years"`
-	Courses       []Course       `json:"courses"`
-	Programs      []Program      `json:"programs"`
-	Semesters     []Semester     `json:"semesters"`
-	ExtraLinks    []ExtraLink    `json:"extra_links"`
-	ExtraSections []ExtraSection `json:"extra_sections"`
+	Faculties             []Faculty             `json:"faculties"`
+	Branches              []Branch              `json:"branches"`
+	FacultyBranches       []FacultyBranch       `json:"faculty_branches"`
+	Specialisations       []Specialisation      `json:"specialisations"`
+	BranchSpecialisations []BranchSpecialisation `json:"branch_specialisations"`
+	Years                 []Year                `json:"years"`
+	Semesters             []Semester            `json:"semesters"`
+	Courses               []Course              `json:"courses"`
+	Links                 []Link                `json:"links"`
+	ExtraLinks            []ExtraLink           `json:"extra_links"`
+	ExtraSections         []ExtraSection        `json:"extra_sections"`
 }

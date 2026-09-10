@@ -1,11 +1,11 @@
 ---
-name: use-info-links-api
-description: Call the Info Links JSON API as a student agent — guest session, register/claim, browse content, and record analytics. Use when integrating with Info Links programmatically.
+name: use-lu-links-api
+description: Call the LU Links JSON API as a student agent — guest session, register/claim, browse content, and record analytics. Use when integrating with LU Links programmatically.
 ---
 
-# Use Info Links API
+# Use LU Links API
 
-Info Links is a CNAM Liban student materials hub. Agents authenticate with a student JWT (not admin OAuth).
+LU Links is the Lebanese University course materials hub. Agents authenticate with a student JWT (not admin OAuth).
 
 ## Discover
 
@@ -39,7 +39,7 @@ On `409`, pick another `number` (1–100). Guests cannot open gated links or sub
 GET /api/content
 ```
 
-Returns the program → year → semester → course → link tree. SEO/markdown pages also exist at `/courses` and `/course/{code}` (`Accept: text/markdown`).
+Returns the faculty → branch → specialisation → year → semester → course → link tree. SEO/markdown pages also exist at `/courses` and `/course/{code}` (`Accept: text/markdown`).
 
 ## Analytics
 

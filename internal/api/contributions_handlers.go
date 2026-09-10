@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"strings"
 
-	"infolinks-backend/internal/errs"
-	"infolinks-backend/internal/models"
+	"lu-links/internal/errs"
+	"lu-links/internal/models"
 )
 
 func (h *Handler) handlePostContribution(w http.ResponseWriter, r *http.Request) {
@@ -72,6 +72,8 @@ func mapPostContributionErr(h *Handler, w http.ResponseWriter, r *http.Request, 
 	switch {
 	case errors.Is(err, errs.ErrCourseNameAndLinkUrlRequired):
 		writeJSONError(w, r, http.StatusBadRequest, "Course name and link URL are required")
+	case errors.Is(err, errs.ErrUserNotFound):
+		writeJSONError(w, r, http.StatusUnauthorized, "Unauthorized: User not found")
 	default:
 		h.LoggerWithID(r).Error("create contribution failed", "error", err)
 		writeJSONError(w, r, http.StatusInternalServerError, "Internal server error")

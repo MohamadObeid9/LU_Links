@@ -1,4 +1,4 @@
-module infolinks-backend
+module lu-links
 
 go 1.25.13
 

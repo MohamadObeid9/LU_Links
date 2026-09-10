@@ -113,12 +113,13 @@ func TestHandleApiRoot(t *testing.T) {
 	}
 
 	want := map[string]any{
-		"message": "Welcome to the Info Links API!",
+		"message": "Welcome to the LU Links API!",
 		"usage":   "This is a Go backend serving JSON data.",
 		"public_endpoints": []any{
 			map[string]any{"path": "/api/content", "method": "GET", "description": "Fetch the full navigation tree."},
 			map[string]any{"path": "/api/auth/login", "method": "POST", "description": "Admin login (returns JWT token)."},
 			map[string]any{"path": "/api/feedback", "method": "POST", "description": "Submit user feedback."},
+			map[string]any{"path": "/api/suggestions", "method": "POST", "description": "Submit a site improvement suggestion."},
 			map[string]any{"path": "/api/reports", "method": "POST", "description": "Submit a course/link report."},
 			map[string]any{"path": "/api/page_views", "method": "POST", "description": "Record a page view (analytics)."},
 			map[string]any{"path": "/api/link_clicks", "method": "POST", "description": "Record a link click (analytics)."},
@@ -131,6 +132,7 @@ func TestHandleApiRoot(t *testing.T) {
 			map[string]any{"path": "/api/admin/links", "method": "POST/PATCH/DELETE", "description": "Manage links."},
 			map[string]any{"path": "/api/admin/reports", "method": "GET/PATCH/DELETE", "description": "Manage user reports."},
 			map[string]any{"path": "/api/admin/feedback", "method": "GET/PATCH/DELETE", "description": "Manage feedback."},
+			map[string]any{"path": "/api/admin/suggestions", "method": "GET/PATCH/DELETE", "description": "Manage suggestions."},
 			map[string]any{"path": "/api/admin/contributions", "method": "GET/PATCH/DELETE", "description": "Manage user contributions."},
 			map[string]any{"path": "/api/admin/extra_sections", "method": "GET/POST/PATCH/DELETE", "description": "Manage extra sections."},
 			map[string]any{"path": "/api/admin/extra_links", "method": "GET/POST/PATCH/DELETE", "description": "Manage extra links."},

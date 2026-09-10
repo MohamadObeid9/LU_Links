@@ -1,9 +1,16 @@
 import { AppState } from "./state.js";
-import { esc } from "./ui.js";
+import { esc, setBtnLoading } from "./ui.js";
 import { sb, trackLinkClick } from "./supabase.js";
 import { loadAll } from "./data.js";
 import { _clearCache } from "./cache.js";
 import { showToast } from "./export.js";
+import { t } from "./i18n.js";
+import {
+  hierarchySelectHtml,
+  initHierarchyPicker,
+  selectedSemesterId,
+  findCoursePath,
+} from "./hierarchy-picker.js";
 
 // ===================== CONFIRM MODAL =====================
 let _modalCallback = null;
@@ -63,21 +70,21 @@ function confirmLink(linkId, rawUrl, linkKind = "link") {
   try {
     parsed = new URL(url, window.location.origin);
   } catch (err) {
-    showToast("Invalid link URL.", true);
+    showToast(t("toast_invalid_url"), true);
     return;
   }
   if (!["http:", "https:"].includes(parsed.protocol)) {
-    showToast("Blocked unsafe URL scheme.", true);
+    showToast(t("toast_unsafe_url"), true);
     return;
   }
 
   const box = document.createElement("div");
-  box.innerHTML = `<h2>🔗 Open External Link</h2>
-  <p style="color:var(--muted);margin-top:8px;font-size:1rem;">You're leaving Info Links to visit:</p>
+  box.innerHTML = `<h2>${esc(t("modal_open_link_title"))}</h2>
+  <p style="color:var(--muted);margin-top:8px;font-size:1rem;">${esc(t("modal_open_link_body"))}</p>
   <p style="word-break:break-all;font-family:monospace;background:var(--bg3);padding:8px;border-radius:4px;margin:10px 0;font-size:.85rem;">${esc(url)}</p>
   <div class="modal-actions">
-    <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
-    <button class="btn" id="openLinkBtn">Open Link ↗</button>
+    <button class="btn btn-ghost" onclick="closeModal()">${esc(t("btn_cancel"))}</button>
+    <button class="btn" id="openLinkBtn">${esc(t("btn_open_link"))}</button>
   </div>`;
 
   document.getElementById("modalBox").innerHTML = "";
@@ -179,9 +186,90 @@ function _contentTypeCheckboxes(selectedStr, prefix = "ct") {
 }
 
 function _readContentTypeCheckboxes(prefix = "ct") {
-  const checks = document.querySelectorAll(`input[name="${prefix}"]:checked`);
+  const checks = document.querySelectorAll(`input[name="${prefix}]:checked`);
   const vals = [...checks].map((c) => c.value);
   return vals.length ? vals.join(",") : null;
+}
+
+function _languageCheckboxes(selected, prefix = "lang") {
+  const selectedSet = new Set(
+    Array.isArray(selected)
+      ? selected
+      : String(selected || "")
+          .split(",")
+          .map((s) => s.trim())
+          .filter(Boolean),
+  );
+  const opts = [
+    ["en", "EN"],
+    ["fr", "FR"],
+    ["ar", "AR"],
+  ];
+  return (
+    `<div class="content-type-group lang-type-group" id="${prefix}Group">` +
+    opts
+      .map(
+        ([v, label]) =>
+          `<label class="ct-checkbox-label lang-checkbox-label"><input type="checkbox" name="${prefix}" value="${v}" ${selectedSet.has(v) ? "checked" : ""}/>${label}</label>`,
+      )
+      .join("") +
+    `</div>`
+  );
+}
+
+function _readLanguageCheckboxes(prefix = "lang") {
+  return [...document.querySelectorAll(`input[name="${prefix}"]:checked`)].map(
+    (c) => c.value,
+  );
+}
+
+/** Encode/decode [Type:…] [Content:…] [Lang:…] prefixes used in contribution notes. */
+function encodeContributionNote({
+  linkType = "",
+  contentTypes = "",
+  languages = [],
+  note = "",
+} = {}) {
+  const parts = [];
+  if (linkType) parts.push(`[Type:${linkType}]`);
+  const cts = Array.isArray(contentTypes)
+    ? contentTypes.filter(Boolean).join(",")
+    : String(contentTypes || "").trim();
+  if (cts) parts.push(`[Content:${cts}]`);
+  if (languages.length) parts.push(`[Lang:${languages.join(",")}]`);
+  const rest = String(note || "").trim();
+  if (rest) parts.push(rest);
+  return parts.join(" ").trim();
+}
+
+function parseContributionNote(raw) {
+  let text = String(raw || "").trim();
+  let linkType = "";
+  let contentTypes = "";
+  let languages = [];
+  const typeMatch = text.match(/^\[Type:\s*([^\]]+)\]\s*/i);
+  if (typeMatch) {
+    linkType = typeMatch[1].trim();
+    text = text.slice(typeMatch[0].length);
+  }
+  const contentMatch = text.match(/^\[Content:\s*([^\]]+)\]\s*/i);
+  if (contentMatch) {
+    contentTypes = contentMatch[1]
+      .split(",")
+      .map((s) => s.trim().toLowerCase())
+      .filter(Boolean)
+      .join(",");
+    text = text.slice(contentMatch[0].length);
+  }
+  const langMatch = text.match(/^\[Lang:\s*([^\]]+)\]\s*/i);
+  if (langMatch) {
+    languages = langMatch[1]
+      .split(",")
+      .map((s) => s.trim().toLowerCase())
+      .filter(Boolean);
+    text = text.slice(langMatch[0].length);
+  }
+  return { linkType, contentTypes, languages, note: text.trim() };
 }
 
 // Keep backward compat for any code using _contentTypeOptions
@@ -220,40 +308,22 @@ function _linkTypeOptions(selected) {
 
 // Add Course
 function openAddCourseModal() {
-  const progOpts = AppState.dbPrograms
-    .map((p) => `<option value="${p.id}">${esc(p.name)}</option>`)
-    .join("");
   openModal(`<h2>➕ Add Course</h2>
-  <label>Program</label><select id="mProg" onchange="updateYearSemOpts()">${progOpts}</select>
-  <label>Year</label><select id="mYear" onchange="updateSemOpts()"></select>
-  <label>Semester</label><select id="mSem"></select>
+  ${hierarchySelectHtml("m")}
   <label>Course Name</label><input type="text" id="mName" placeholder="e.g. Machine Learning"/>
   <label>Course Code</label><input type="text" id="mCode" placeholder="e.g. ML101"/>
-  <p style="color:var(--muted);font-size:.85rem;margin-top:8px;">If this code already exists, it is added to this program and shares the same links.</p>
+  <p style="color:var(--muted);font-size:.85rem;margin-top:8px;">Pick faculty → campus → specialisation → year → semester, then enter the course.</p>
   <div class="modal-actions"><button class="btn btn-ghost" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="addCourse()">Add</button></div>`);
-  updateYearSemOpts();
-}
-function updateYearSemOpts() {
-  const pi = parseInt(document.getElementById("mProg").value);
-  const prog = AppState.dbPrograms.find((p) => p.id === pi);
-  document.getElementById("mYear").innerHTML = prog.years
-    .map((y) => `<option value="${y.id}">${esc(y.name)}</option>`)
-    .join("");
-  updateSemOpts();
-}
-function updateSemOpts() {
-  const pi = parseInt(document.getElementById("mProg").value);
-  const yi = parseInt(document.getElementById("mYear").value);
-  const prog = AppState.dbPrograms.find((p) => p.id === pi);
-  const year = prog.years.find((y) => y.id === yi);
-  document.getElementById("mSem").innerHTML = year.sems
-    .map((s) => `<option value="${s.id}">${esc(s.name)}</option>`)
-    .join("");
+  initHierarchyPicker("m");
 }
 async function addCourse() {
-  const semId = parseInt(document.getElementById("mSem").value);
+  const semId = selectedSemesterId("m");
   const name = document.getElementById("mName").value.trim();
   const code = document.getElementById("mCode").value.trim();
+  if (!semId) {
+    showToast("Pick faculty → campus → specialisation → year → semester.", true);
+    return;
+  }
   if (!name || !code) {
     showToast("Name and code required.", true);
     return;
@@ -280,75 +350,36 @@ async function addCourse() {
 
 // Edit Course
 function openEditCourseModal(id, placementId) {
-  let c, currentProgId, currentYearId, currentSemId;
+  let c;
   AppState.dbPrograms.forEach((p) =>
     p.years.forEach((y) =>
       y.sems.forEach((s) =>
         s.courses.forEach((co) => {
           if (co.id === id && (!placementId || co.placement_id === placementId)) {
             c = co;
-            currentProgId = p.id;
-            currentYearId = y.id;
-            currentSemId = s.id;
           }
         }),
       ),
     ),
   );
   if (!c) return;
-
-  const progOpts = AppState.dbPrograms
-    .map(
-      (p) =>
-        `<option value="${p.id}" ${p.id === currentProgId ? "selected" : ""}>${esc(p.name)}</option>`,
-    )
-    .join("");
-
-  const cp = AppState.dbPrograms.find((p) => p.id === currentProgId);
-  const yearOpts = cp.years
-    .map(
-      (y) =>
-        `<option value="${y.id}" ${y.id === currentYearId ? "selected" : ""}>${esc(y.name)}</option>`,
-    )
-    .join("");
-
-  const cy = cp.years.find((y) => y.id === currentYearId);
-  const semOpts = cy.sems
-    .map(
-      (s) =>
-        `<option value="${s.id}" ${s.id === currentSemId ? "selected" : ""}>${esc(s.name)}</option>`,
-    )
-    .join("");
+  const path = findCoursePath(id);
 
   openModal(`<h2>✏️ Edit Course</h2>
   <label>Course Name</label><input type="text" id="eName" value="${esc(c.name)}"/>
   <label>Course Code</label><input type="text" id="eCode" value="${esc(c.code)}"/>
-  <label>Program</label><select id="eProg" onchange="updateEditYearOpts()">${progOpts}</select>
-  <label>Year</label><select id="eYear" onchange="updateEditSemOpts()">${yearOpts}</select>
-  <label>Semester</label><select id="eSem">${semOpts}</select>
+  ${hierarchySelectHtml("e")}
   <div class="modal-actions"><button class="btn btn-ghost" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="saveCourse(${id}, ${Number(c.placement_id) || 0})">Save</button></div>`);
-}
-function updateEditYearOpts() {
-  const pi = parseInt(document.getElementById("eProg").value);
-  const prog = AppState.dbPrograms.find((p) => p.id === pi);
-  document.getElementById("eYear").innerHTML = prog.years
-    .map((y) => `<option value="${y.id}">${esc(y.name)}</option>`)
-    .join("");
-  updateEditSemOpts();
-}
-function updateEditSemOpts() {
-  const pi = parseInt(document.getElementById("eProg").value);
-  const yi = parseInt(document.getElementById("eYear").value);
-  const prog = AppState.dbPrograms.find((p) => p.id === pi);
-  const year = prog.years.find((y) => y.id === yi);
-  document.getElementById("eSem").innerHTML = year.sems
-    .map((s) => `<option value="${s.id}">${esc(s.name)}</option>`)
-    .join("");
+  initHierarchyPicker("e", { selected: path });
 }
 async function saveCourse(id, placementId) {
   const name = document.getElementById("eName").value.trim();
   const code = document.getElementById("eCode").value.trim();
-  const semId = parseInt(document.getElementById("eSem").value);
+  const semId = selectedSemesterId("e");
+  if (!semId) {
+    showToast("Pick faculty → campus → specialisation → year → semester.", true);
+    return;
+  }
   if (!name || !code) {
     showToast("Name and code required.", true);
     return;
@@ -387,6 +418,7 @@ function openAddLinkModal(courseId) {
   <label>URL</label><input type="text" id="lUrl" placeholder="https://…"/>
   <label>Label</label><input type="text" id="lLabel" placeholder="Link 1"/>
   <label>Content Type(s)</label>${_contentTypeCheckboxes("", "lct")}
+  <label>Language(s)</label>${_languageCheckboxes([], "llang")}
   <label>Note (optional)</label><input type="text" id="lNote" placeholder="e.g. mail 3adi"/>
   <div class="modal-actions"><button class="btn btn-ghost" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="addLink(${courseId})">Add</button></div>`);
 }
@@ -404,6 +436,7 @@ async function addLink(courseId) {
   const label = document.getElementById("lLabel").value.trim() || "Link";
   const note = document.getElementById("lNote").value.trim();
   const contentType = _readContentTypeCheckboxes("lct");
+  const languages = _readLanguageCheckboxes("llang");
   try {
     await sb("links", "POST", {
       course_id: courseId,
@@ -412,6 +445,7 @@ async function addLink(courseId) {
       label,
       note,
       content_type: contentType,
+      languages,
       display_order: _getNextDisplayOrder(courseId),
     });
     closeModal();
@@ -460,6 +494,7 @@ function openEditLinkModal(linkId, courseId) {
   <label>URL</label><input type="text" id="elUrl" value="${esc(l.url)}"/>
   <label>Label</label><input type="text" id="elLabel" value="${esc(l.label)}"/>
   <label>Content Type(s)</label>${_contentTypeCheckboxes(l.content_type || "", "elct")}
+  <label>Language(s)</label>${_languageCheckboxes(l.languages || [], "ellang")}
   <label>Note (optional)</label><input type="text" id="elNote" value="${esc(l.note || "")}"/>
   <div class="modal-actions"><button class="btn btn-ghost" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="saveLink(${linkId},${courseId})">Save</button></div>`);
 }
@@ -477,6 +512,7 @@ async function saveLink(linkId, _courseId) {
   const label = document.getElementById("elLabel").value.trim() || "Link";
   const note = document.getElementById("elNote").value.trim();
   const contentType = _readContentTypeCheckboxes("elct");
+  const languages = _readLanguageCheckboxes("ellang");
   try {
     await sb(`links?id=eq.${linkId}`, "PATCH", {
       type,
@@ -484,6 +520,7 @@ async function saveLink(linkId, _courseId) {
       label,
       note,
       content_type: contentType,
+      languages,
     });
     closeModal();
     _clearCache();
@@ -628,10 +665,6 @@ Object.assign(window, {
   openEditCourseModal,
   addCourse,
   saveCourse,
-  updateYearSemOpts,
-  updateSemOpts,
-  updateEditYearOpts,
-  updateEditSemOpts,
   openAddLinkModal,
   addLink,
   openEditLinkModal,
@@ -648,4 +681,15 @@ Object.assign(window, {
 
 document.addEventListener("keydown", _trapModalFocus);
 
-export { openModal, closeModal, _linkTypeOptions, _contentTypeCheckboxes, _readContentTypeCheckboxes, _getNextDisplayOrder };
+export {
+  openModal,
+  closeModal,
+  _linkTypeOptions,
+  _contentTypeCheckboxes,
+  _readContentTypeCheckboxes,
+  _languageCheckboxes,
+  _readLanguageCheckboxes,
+  encodeContributionNote,
+  parseContributionNote,
+  _getNextDisplayOrder,
+};
